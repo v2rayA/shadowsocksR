@@ -2,16 +2,16 @@ package client
 
 import (
 	"errors"
+	"github.com/mzz2017/shadowsocksR/ssr"
 	log2 "log"
 	"net"
 	"net/url"
-	"shadowsocksR/ssr"
 	"strconv"
 	"strings"
 
-	shadowsocksr "shadowsocksR"
-	"shadowsocksR/obfs"
-	"shadowsocksR/protocol"
+	shadowsocksr "github.com/mzz2017/shadowsocksR"
+	"github.com/mzz2017/shadowsocksR/obfs"
+	"github.com/mzz2017/shadowsocksR/protocol"
 
 	"github.com/nadoo/glider/common/log"
 	"github.com/nadoo/glider/common/socks"

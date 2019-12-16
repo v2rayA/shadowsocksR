@@ -5,7 +5,7 @@ import (
 	"github.com/nadoo/glider/proxy"
 	"log"
 	"net/http"
-	"shadowsocksR/client"
+	"github.com/mzz2017/shadowsocksR/client"
 )
 
 func main() {

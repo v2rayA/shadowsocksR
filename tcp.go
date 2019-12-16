@@ -6,9 +6,9 @@ import (
 	"net"
 	"sync"
 
-	"shadowsocksR/obfs"
-	"shadowsocksR/protocol"
-	"shadowsocksR/tools/leakybuf"
+	"github.com/mzz2017/shadowsocksR/obfs"
+	"github.com/mzz2017/shadowsocksR/protocol"
+	"github.com/mzz2017/shadowsocksR/tools/leakybuf"
 )
 
 // SSTCPConn the struct that override the net.Conn methods

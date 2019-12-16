@@ -1,7 +1,7 @@
 package protocol
 
 import (
-	"shadowsocksR/ssr"
+	"github.com/mzz2017/shadowsocksR/ssr"
 )
 
 func init() {

@@ -3,7 +3,7 @@ package protocol
 import (
 	"strings"
 
-	"shadowsocksR/ssr"
+	"github.com/mzz2017/shadowsocksR/ssr"
 )
 
 type creator func() IProtocol

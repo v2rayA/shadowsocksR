@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"shadowsocksR/tools"
+	"github.com/mzz2017/shadowsocksR/tools"
 )
 
 const text = "Don't tell me the moon is shining; show me the glint of light on broken glass."
