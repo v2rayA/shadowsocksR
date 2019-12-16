@@ -3,7 +3,7 @@ package obfs
 import (
 	"strings"
 
-	"github.com/sun8911879/shadowsocksR/ssr"
+	"shadowsocksR/ssr"
 )
 
 type creator func() IObfs

@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/sun8911879/shadowsocksR/ssr"
+	"shadowsocksR/ssr"
 )
 
 var (
