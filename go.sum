@@ -29,6 +29,7 @@ github.com/xtaci/kcp-go v5.4.11+incompatible/go.mod h1:bN6vIwHQbfHaHtFpEssmWsN45
 github.com/xtaci/lossyconn v0.0.0-20190602105132-8df528c0c9ae/go.mod h1:gXtu8J62kEgmN++bm9BVICuT/e8yiLI2KFobd/TRFsE=
 gitlab.com/yawning/chacha20.git v0.0.0-20170904085104-e3b1f968fc63 h1:UIZuXeGlqnmD7tn3aEoZTmIwTfLXfiGuDdy6UTxpzqQ=
 gitlab.com/yawning/chacha20.git v0.0.0-20170904085104-e3b1f968fc63/go.mod h1:q3ZeczdC/zcX+nXbZv2MImQgIZWzdYUgxrusLWWd3bE=
+gitlab.com/yawning/chacha20.git v0.0.0-20190903091407-6d1cb28dc72c h1:yrfrd1u7MWIwWIulet2TZPEkeNQhQ/GcPLdPXgiEEr0=
 gitlab.com/yawning/chacha20.git v0.0.0-20190903091407-6d1cb28dc72c/go.mod h1:3x6b94nWCP/a2XB/joOPMiGYUBvqbLfeY/BkHLeDs6s=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=

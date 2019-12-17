@@ -3,12 +3,13 @@ package shadowsocksr
 import (
 	"bytes"
 	"fmt"
-	"net"
-	"sync"
-
 	"github.com/mzz2017/shadowsocksR/obfs"
 	"github.com/mzz2017/shadowsocksR/protocol"
 	"github.com/mzz2017/shadowsocksR/tools/leakybuf"
+	"log"
+	_ "log"
+	"net"
+	"sync"
 )
 
 // SSTCPConn the struct that override the net.Conn methods
@@ -60,6 +61,8 @@ func (c *SSTCPConn) GetKey() (key []byte) {
 }
 
 func (c *SSTCPConn) initEncryptor(b []byte) (iv []byte, err error) {
+	c.Lock()
+	defer c.Unlock()
 	if c.enc == nil {
 		iv, err = c.initEncrypt()
 		if err != nil {
@@ -120,7 +123,7 @@ func (c *SSTCPConn) doRead(b []byte) (n int, err error) {
 		}
 
 		//do send back
-		if length == 1 {
+		if length == 0x3f3f3f3f {
 			c.Write(make([]byte, 0))
 			return 0, nil
 		}
@@ -148,6 +151,7 @@ func (c *SSTCPConn) doRead(b []byte) (n int, err error) {
 
 		//完全读取数据 --	length == 0
 		c.readIObfsBuf.Write(decodedData)
+
 		break
 	}
 
@@ -172,22 +176,28 @@ func (c *SSTCPConn) doRead(b []byte) (n int, err error) {
 	}
 
 	buf := make([]byte, decodelength)
+	// decrypt decodedData and save it to buf
 	c.decrypt(buf, decodedData)
-
+	// append buf to c.readEncryptBuf
 	c.readEncryptBuf.Write(buf)
+	// and read it to encryptbuf immediately
 	encryptbuf := c.readEncryptBuf.Bytes()
+	// then reset it
 	c.readEncryptBuf.Reset()
 	postDecryptedData, length, err := c.IProtocol.PostDecrypt(encryptbuf)
 	if err != nil {
+		log.Println(string(decodebytes))
 		return 0, err
 	}
 	if length == 0 {
+		// not enough to decrypt
 		c.readEncryptBuf.Write(encryptbuf)
 		return 0, nil
-	}
-
-	if length > 0 {
+	} else if length > 0 {
+		// append un-decrypt data to buf
 		c.readEncryptBuf.Write(encryptbuf[length:])
+	} else {
+		// not use readEncryptBuf
 	}
 
 	postDecryptedlength := len(postDecryptedData)
@@ -217,9 +227,9 @@ func (c *SSTCPConn) preWrite(b []byte) (outData []byte, err error) {
 	//! \attention here the expected output buffer length MUST be accurate, it is preEncryptedDataLen now!
 	c.encrypt(encryptedData[0:preEncryptedDataLen], preEncryptedData)
 
-	//common.Info("len(b)=", len(b), ", b:", b,
+	//log.Println("len(b)=", len(b), ", b:", string(b),
 	//	", pre encrypted data length:", preEncryptedDataLen,
-	//	", pre encrypted data:", preEncryptedData,
+	//	", pre encrypted data:", string(preEncryptedData),
 	//	", encrypted data length:", preEncryptedDataLen)
 
 	cipherData := c.writeBuf
@@ -241,11 +251,12 @@ func (c *SSTCPConn) preWrite(b []byte) (outData []byte, err error) {
 
 func (c *SSTCPConn) Write(b []byte) (n int, err error) {
 	outData, err := c.preWrite(b)
-	if err == nil {
-		n, err = c.Conn.Write(outData)
-		if err != nil {
-			return n, err
-		}
+	if err != nil {
+		return 0, err
+	}
+	n, err = c.Conn.Write(outData)
+	if err != nil {
+		return 0, err
 	}
 	return len(b), nil
 }

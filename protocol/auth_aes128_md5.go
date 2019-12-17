@@ -32,9 +32,6 @@ func NewAuthAES128MD5() IProtocol {
 			recvID: 1,
 			buffer: bytes.NewBuffer(nil),
 		},
-		data: &authData{
-			connectionID: 0xFF000001,
-		},
 	}
 	return a
 }
@@ -80,6 +77,7 @@ func (a *authAES128) GetData() interface{} {
 func (a *authAES128) packData(data []byte) (outData []byte) {
 	dataLength := len(data)
 	randLength := 1
+	rand.Seed(time.Now().UnixNano())
 	if dataLength <= 1200 {
 		if a.packID > 4 {
 			randLength += rand.Intn(32)
@@ -126,6 +124,7 @@ func (a *authAES128) packData(data []byte) (outData []byte) {
 func (a *authAES128) packAuthData(data []byte) (outData []byte) {
 	dataLength := len(data)
 	var randLength int
+	rand.Seed(time.Now().UnixNano())
 	if dataLength > 400 {
 		randLength = rand.Intn(512)
 	} else {

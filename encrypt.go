@@ -5,10 +5,11 @@ import (
 	"crypto/cipher"
 	"crypto/des"
 	"crypto/md5"
-	"crypto/rand"
 	"crypto/rc4"
 	"encoding/binary"
 	"errors"
+	"math/rand"
+	"time"
 
 	"github.com/mzz2017/shadowsocksR/tools"
 	"github.com/mzz2017/shadowsocksR/tools/leakybuf"
@@ -244,6 +245,7 @@ func NewStreamCipher(method, password string) (c *StreamCipher, err error) {
 func (c *StreamCipher) initEncrypt() (iv []byte, err error) {
 	if c.iv == nil {
 		iv = make([]byte, c.info.ivLen)
+		rand.Seed(time.Now().UnixNano())
 		rand.Read(iv)
 		c.iv = iv
 	} else {

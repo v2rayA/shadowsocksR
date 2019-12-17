@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
+	"github.com/mzz2017/shadowsocksR/client"
 	"github.com/nadoo/glider/proxy"
 	"log"
 	"net/http"
-	"github.com/mzz2017/shadowsocksR/client"
 )
 
 func main() {

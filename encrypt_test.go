@@ -1,10 +1,11 @@
 package shadowsocksr
 
 import (
-	"crypto/rand"
 	"crypto/rc4"
+	"math/rand"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/mzz2017/shadowsocksR/tools"
 )
@@ -98,6 +99,7 @@ func init() {
 	for i := 0; i < len(cipherKey); i++ {
 		cipherKey[i] = byte(i)
 	}
+	rand.Seed(time.Now().UnixNano())
 	rand.Read(cipherIv)
 }
 
@@ -163,6 +165,7 @@ func benchmarkCipherEncrypt(b *testing.B, method string) {
 	}
 	src := make([]byte, CIPHER_BENCHMARK_BUFFER_LEN)
 	dst := make([]byte, CIPHER_BENCHMARK_BUFFER_LEN)
+	rand.Seed(time.Now().UnixNano())
 	rand.Read(src)
 	for i := 0; i < b.N; i++ {
 		enc.XORKeyStream(dst, src)
@@ -219,6 +222,7 @@ func benchmarkCipherDecrypt(b *testing.B, method string) {
 	}
 	src := make([]byte, CIPHER_BENCHMARK_BUFFER_LEN)
 	dst := make([]byte, CIPHER_BENCHMARK_BUFFER_LEN)
+	rand.Seed(time.Now().UnixNano())
 	rand.Read(src)
 	enc.XORKeyStream(dst, src)
 	for i := 0; i < b.N; i++ {

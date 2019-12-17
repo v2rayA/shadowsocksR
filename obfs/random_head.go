@@ -2,6 +2,7 @@ package obfs
 
 import (
 	"math/rand"
+	"time"
 
 	"github.com/mzz2017/shadowsocksR/ssr"
 )
@@ -44,6 +45,7 @@ func (r *randomHead) Encode(data []byte) (encodedData []byte, err error) {
 		return data, nil
 	}
 
+	rand.Seed(time.Now().UnixNano())
 	dataLength := len(data)
 	if r.hasSentHeader {
 		if dataLength > 0 {
