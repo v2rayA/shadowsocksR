@@ -56,19 +56,19 @@ See 'example/client.go' for detailed usage.
 
 #### SSR Obfs
 
--[x] plain
--[x] http_simple
--[x] http_post
--[ ] random_head
--[x] tls1.2_ticket_auth
+- plain
+- http_simple
+- http_post
+- random_head
+- tls1.2_ticket_auth
 
 #### SSR Protocol
 
--[x] origin
--[ ] verify_sha1 aka. one time auth(OTA)
--[ ] auth_sha1_v4
--[x] auth_aes128_md5
--[x] auth_aes128_sha1
+- origin
+- verify_sha1 aka. one time auth(OTA)
+- auth_sha1_v4
+- auth_aes128_md5
+- auth_aes128_sha1
 
 ## Todo (help wanted)
 

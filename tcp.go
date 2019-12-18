@@ -6,7 +6,6 @@ import (
 	"github.com/mzz2017/shadowsocksR/obfs"
 	"github.com/mzz2017/shadowsocksR/protocol"
 	"github.com/mzz2017/shadowsocksR/tools/leakybuf"
-	"log"
 	_ "log"
 	"net"
 	"sync"
@@ -15,7 +14,7 @@ import (
 // SSTCPConn the struct that override the net.Conn methods
 type SSTCPConn struct {
 	net.Conn
-	sync.RWMutex
+	sync.Mutex
 	*StreamCipher
 	IObfs          obfs.IObfs
 	IProtocol      protocol.IProtocol
@@ -61,8 +60,6 @@ func (c *SSTCPConn) GetKey() (key []byte) {
 }
 
 func (c *SSTCPConn) initEncryptor(b []byte) (iv []byte, err error) {
-	c.Lock()
-	defer c.Unlock()
 	if c.enc == nil {
 		iv, err = c.initEncrypt()
 		if err != nil {
@@ -119,6 +116,7 @@ func (c *SSTCPConn) doRead(b []byte) (n int, err error) {
 
 		decodedData, length, err := c.IObfs.Decode(decodebytes)
 		if length == 0 && err != nil {
+			//log.Println(c.Conn.LocalAddr().String(), c.IObfs.(*obfs.Tls12TicketAuth).HandshakeStatus, err)
 			return 0, err
 		}
 
@@ -186,7 +184,7 @@ func (c *SSTCPConn) doRead(b []byte) (n int, err error) {
 	c.readEncryptBuf.Reset()
 	postDecryptedData, length, err := c.IProtocol.PostDecrypt(encryptbuf)
 	if err != nil {
-		log.Println(string(decodebytes))
+		//log.Println(string(decodebytes))
 		return 0, err
 	}
 	if length == 0 {
@@ -245,11 +243,13 @@ func (c *SSTCPConn) preWrite(b []byte) (outData []byte, err error) {
 		copy(cipherData, iv)
 	}
 	copy(cipherData[len(iv):], encryptedData)
-
+	//log.Println(&c.Conn, c.Conn.LocalAddr().String(), c.IObfs.(*obfs.Tls12TicketAuth).HandshakeStatus)
 	return c.IObfs.Encode(cipherData)
 }
 
 func (c *SSTCPConn) Write(b []byte) (n int, err error) {
+	c.Lock()
+	defer c.Unlock()
 	outData, err := c.preWrite(b)
 	if err != nil {
 		return 0, err
