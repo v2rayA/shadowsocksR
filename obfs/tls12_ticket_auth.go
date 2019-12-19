@@ -21,42 +21,42 @@ type tlsAuthData struct {
 	localClientID [32]byte
 }
 
-// Tls12TicketAuth tls1.2_ticket_auth obfs encapsulate
-type Tls12TicketAuth struct {
+// tls12TicketAuth tls1.2_ticket_auth obfs encapsulate
+type tls12TicketAuth struct {
 	ssr.ServerInfoForObfs
 	data            *tlsAuthData
-	HandshakeStatus int
+	handshakeStatus int
 	sendBuffer      []byte
 	fastAuth        bool
 }
 
 // newTLS12TicketAuth create a tlv1.2_ticket_auth object
 func newTLS12TicketAuth() IObfs {
-	return &Tls12TicketAuth{}
+	return &tls12TicketAuth{}
 }
 
 // newTLS12TicketFastAuth create a tlv1.2_ticket_fastauth object
 func newTLS12TicketFastAuth() IObfs {
-	return &Tls12TicketAuth{
+	return &tls12TicketAuth{
 		fastAuth: true,
 	}
 }
 
-func (t *Tls12TicketAuth) SetServerInfo(s *ssr.ServerInfoForObfs) {
+func (t *tls12TicketAuth) SetServerInfo(s *ssr.ServerInfoForObfs) {
 	t.ServerInfoForObfs = *s
 }
 
-func (t *Tls12TicketAuth) GetServerInfo() (s *ssr.ServerInfoForObfs) {
+func (t *tls12TicketAuth) GetServerInfo() (s *ssr.ServerInfoForObfs) {
 	return &t.ServerInfoForObfs
 }
 
-func (t *Tls12TicketAuth) SetData(data interface{}) {
+func (t *tls12TicketAuth) SetData(data interface{}) {
 	if auth, ok := data.(*tlsAuthData); ok {
 		t.data = auth
 	}
 }
 
-func (t *Tls12TicketAuth) GetData() interface{} {
+func (t *tls12TicketAuth) GetData() interface{} {
 	if t.data == nil {
 		t.data = &tlsAuthData{}
 		b := make([]byte, 32)
@@ -67,7 +67,7 @@ func (t *Tls12TicketAuth) GetData() interface{} {
 	return t.data
 }
 
-func (t *Tls12TicketAuth) getHost() string {
+func (t *tls12TicketAuth) getHost() string {
 	host := t.Host
 	if len(t.Param) > 0 {
 		hosts := strings.Split(t.Param, ",")
@@ -91,10 +91,10 @@ func packData(prefixData []byte, suffixData []byte) (outData []byte) {
 	return
 }
 
-func (t *Tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
+func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 	encodedData = make([]byte, 0)
 	rand.Seed(time.Now().UnixNano())
-	switch t.HandshakeStatus {
+	switch t.handshakeStatus {
 	case 8:
 		if len(data) < 1024 {
 			d := []byte{0x17, 0x3, 0x3, 0, 0}
@@ -150,7 +150,7 @@ func (t *Tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 		copy(hmacData[33:], h)
 		encodedData = append(hmacData, t.sendBuffer...)
 		t.sendBuffer = t.sendBuffer[:0]
-		t.HandshakeStatus = 8
+		t.handshakeStatus = 8
 	case 0:
 		tlsData0 := []byte("\x00\x1c\xc0\x2b\xc0\x2f\xcc\xa9\xcc\xa8\xcc\x14\xcc\x13\xc0\x0a\xc0\x14\xc0\x09\xc0\x13\x00\x9c\x00\x35\x00\x2f\x00\x0a\x01\x00")
 		tlsData1 := []byte("\xff\x01\x00\x01\x00")
@@ -219,21 +219,21 @@ func (t *Tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 		l += 1
 
 		t.sendBuffer = packData(t.sendBuffer, data)
-		t.HandshakeStatus = 1
+		t.handshakeStatus = 1
 	default:
-		//log.Println(fmt.Errorf("unexpected handshake status: %d", t.HandshakeStatus))
-		return nil, fmt.Errorf("unexpected handshake status: %d", t.HandshakeStatus)
+		//log.Println(fmt.Errorf("unexpected handshake status: %d", t.handshakeStatus))
+		return nil, fmt.Errorf("unexpected handshake status: %d", t.handshakeStatus)
 	}
 	return
 }
 
-func (t *Tls12TicketAuth) Decode(data []byte) (decodedData []byte, lenread uint64, err error) {
-	if t.HandshakeStatus == -1 {
+func (t *tls12TicketAuth) Decode(data []byte) (decodedData []byte, lenread uint64, err error) {
+	if t.handshakeStatus == -1 {
 		return data, uint64(len(data)), nil
 	}
 	dataLength := len(data)
 
-	if t.HandshakeStatus == 8 {
+	if t.handshakeStatus == 8 {
 		if dataLength < 5 {
 			return nil, 5, fmt.Errorf("data need minimum length: 5 ,data only length: %d", dataLength)
 		}
@@ -262,7 +262,7 @@ func (t *Tls12TicketAuth) Decode(data []byte) (decodedData []byte, lenread uint6
 	return nil, 0x3f3f3f3f, nil
 }
 
-func (t *Tls12TicketAuth) packAuthData() (outData []byte) {
+func (t *tls12TicketAuth) packAuthData() (outData []byte) {
 	outSize := 32
 	outData = make([]byte, outSize)
 
@@ -278,7 +278,7 @@ func (t *Tls12TicketAuth) packAuthData() (outData []byte) {
 	return
 }
 
-func (t *Tls12TicketAuth) hmacSHA1(data []byte) []byte {
+func (t *tls12TicketAuth) hmacSHA1(data []byte) []byte {
 	key := make([]byte, t.KeyLen+32)
 	copy(key, t.Key)
 	copy(key[t.KeyLen:], t.data.localClientID[:])
@@ -287,7 +287,7 @@ func (t *Tls12TicketAuth) hmacSHA1(data []byte) []byte {
 	return sha1Data[:ssr.ObfsHMACSHA1Len]
 }
 
-func (t *Tls12TicketAuth) sni(u string) []byte {
+func (t *tls12TicketAuth) sni(u string) []byte {
 	bURL := []byte(u)
 	length := len(bURL)
 	ret := make([]byte, length+9)

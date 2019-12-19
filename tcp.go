@@ -116,7 +116,7 @@ func (c *SSTCPConn) doRead(b []byte) (n int, err error) {
 
 		decodedData, length, err := c.IObfs.Decode(decodebytes)
 		if length == 0 && err != nil {
-			//log.Println(c.Conn.LocalAddr().String(), c.IObfs.(*obfs.Tls12TicketAuth).HandshakeStatus, err)
+			//log.Println(c.Conn.LocalAddr().String(), c.IObfs.(*obfs.tls12TicketAuth).handshakeStatus, err)
 			return 0, err
 		}
 
@@ -243,7 +243,7 @@ func (c *SSTCPConn) preWrite(b []byte) (outData []byte, err error) {
 		copy(cipherData, iv)
 	}
 	copy(cipherData[len(iv):], encryptedData)
-	//log.Println(&c.Conn, c.Conn.LocalAddr().String(), c.IObfs.(*obfs.Tls12TicketAuth).HandshakeStatus)
+	//log.Println(&c.Conn, c.Conn.LocalAddr().String(), c.IObfs.(*obfs.tls12TicketAuth).handshakeStatus)
 	return c.IObfs.Encode(cipherData)
 }
 

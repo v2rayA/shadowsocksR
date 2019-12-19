@@ -1,6 +1,8 @@
 # shadowsocksR
 
-[shadowsocksR](https://shadowsocksR) is a shadowsocksR for Go library
+**A fork of [sun8911879/shadowsocksR](https://github.com/sun8911879/shadowsocksR).**
+
+[shadowsocksR](https://github.com/mzz2017/shadowsocksR) is a shadowsocksR for Go library
 
 * shadowsocksR is based on [avege](https://github.com/avege/avege) and [shadowsocksR for Python](https://github.com/shadowsocksr-backup/shadowsocksr) changes. 
 * Repair avege SSR communication BUG and streamline version. Is a normal use version.
@@ -82,3 +84,4 @@ See 'example/client.go' for detailed usage.
 * [shadowsocks-go](https://github.com/shadowsocks/shadowsocks-go)
 * [go-shadowsocks2](https://github.com/shadowsocks/go-shadowsocks2)
 * [ShadowsocksR](https://github.com/shadowsocksr-backup/shadowsocksr)
+* [shadowsocksr-libev](https://github.com/shadowsocksrr/shadowsocksr-libev)
