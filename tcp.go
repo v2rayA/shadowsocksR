@@ -2,6 +2,7 @@ package shadowsocksr
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/mzz2017/shadowsocksR/obfs"
 	"github.com/mzz2017/shadowsocksR/protocol"
@@ -158,6 +159,9 @@ func (c *SSTCPConn) doRead(b []byte) (n int, err error) {
 	c.readIObfsBuf.Reset()
 
 	if c.dec == nil {
+		if len(decodedData) < c.info.ivLen {
+			return 0, errors.New(fmt.Sprintf("invalid ivLen:%v, actual length:%v", c.info.ivLen, len(decodedData)))
+		}
 		iv := decodedData[0:c.info.ivLen]
 		if err = c.initDecrypt(iv); err != nil {
 			return 0, err
