@@ -9,27 +9,7 @@
 
 #### Use
 
-```go
-bi := &BackendInfo{
-	Address: "www.domain.com:445",
-	Type:    "ssr",
-	SSInfo: SSInfo{
-		EncryptMethod:   "aes-128-cfb",
-		EncryptPassword: "password",
-		SSRInfo: SSRInfo{
-			Protocol:      "auth_aes128_sha1",
-			ProtocolParam: "",
-			Obfs:          "tls1.2_ticket_auth",
-			ObfsParam:     "",
-		},
-	},
-}
-dst, err := bi.DialSSRConn(rawaddr)
-bi.Pipe(src, dst)
-bi.Pipe(dst, src)
-```
-
-See 'example/client.go' for detailed usage.
+See 'example/main.go' for detailed usage.
 
 #### SS Encrypting algorithm
 
