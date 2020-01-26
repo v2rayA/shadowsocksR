@@ -15,7 +15,7 @@ func init() {
 
 type authSHA1v4 struct {
 	ssr.ServerInfoForObfs
-	data          *authData
+	data          *AuthData
 	hasSentHeader bool
 	//recvBuffer       []byte
 	//recvBufferLength int
@@ -35,14 +35,14 @@ func (a *authSHA1v4) GetServerInfo() (s *ssr.ServerInfoForObfs) {
 }
 
 func (a *authSHA1v4) SetData(data interface{}) {
-	if auth, ok := data.(*authData); ok {
+	if auth, ok := data.(*AuthData); ok {
 		a.data = auth
 	}
 }
 
 func (a *authSHA1v4) GetData() interface{} {
 	if a.data == nil {
-		a.data = &authData{}
+		a.data = &AuthData{}
 	}
 	return a.data
 }
@@ -98,9 +98,10 @@ func (a *authSHA1v4) packAuthData(data []byte) (outData []byte) {
 	dataOffset := randLength + 4 + 2
 	outLength := dataOffset + dataLength + 12 + ssr.ObfsHMACSHA1Len
 	outData = make([]byte, outLength)
-
+	a.data.mutex.Lock()
+	defer a.data.mutex.Unlock()
 	a.data.connectionID++
-	if a.data.connectionID > 0xFF000000 {
+	if a.data.connectionID >= 0xFF000000 {
 		a.data.clientID = nil
 	}
 	if len(a.data.clientID) == 0 {
@@ -150,7 +151,6 @@ func (a *authSHA1v4) packAuthData(data []byte) (outData []byte) {
 	h := tools.HmacSHA1(key, outData[:outLength-ssr.ObfsHMACSHA1Len])
 	// out length-10~out length/rand length+18+data length~end, hmac
 	copy(outData[outLength-ssr.ObfsHMACSHA1Len:], h[0:ssr.ObfsHMACSHA1Len])
-
 	return outData
 }
 

@@ -15,7 +15,7 @@ func newHttpPost() IObfs {
 	rand.Seed(time.Now().UnixNano())
 	t := &httpSimplePost{
 		userAgentIndex: rand.Intn(len(requestUserAgent)),
-		getOrPost:      false,
+		methodGet:      false,
 	}
 	return t
 }

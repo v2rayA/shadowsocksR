@@ -31,6 +31,7 @@ type SSR struct {
 	Protocol        string
 	ProtocolParam   string
 	ProtocolData    interface{}
+	clientID        string
 }
 
 func init() {
@@ -61,6 +62,8 @@ func NewSSR(s string, d proxy.Dialer) (*SSR, error) {
 	p.ProtocolParam = query.Get("protocol_param")
 	p.Obfs = query.Get("obfs")
 	p.ObfsParam = query.Get("obfs_param")
+
+	p.ProtocolData = new(protocol.AuthData)
 
 	return p, nil
 }

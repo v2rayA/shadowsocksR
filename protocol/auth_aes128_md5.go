@@ -44,7 +44,7 @@ type recvInfo struct {
 type authAES128 struct {
 	ssr.ServerInfoForObfs
 	recvInfo
-	data          *authData
+	data          *AuthData
 	hasSentHeader bool
 	packID        uint32
 	userKey       []byte
@@ -62,14 +62,14 @@ func (a *authAES128) GetServerInfo() (s *ssr.ServerInfoForObfs) {
 }
 
 func (a *authAES128) SetData(data interface{}) {
-	if auth, ok := data.(*authData); ok {
+	if auth, ok := data.(*AuthData); ok {
 		a.data = auth
 	}
 }
 
 func (a *authAES128) GetData() interface{} {
 	if a.data == nil {
-		a.data = &authData{}
+		a.data = &AuthData{}
 	}
 	return a.data
 }
@@ -140,20 +140,21 @@ func (a *authAES128) packAuthData(data []byte) (outData []byte) {
 	copy(key[a.IVLen:], a.Key)
 
 	rand.Read(outData[dataOffset-randLength:])
-
-	if a.data.connectionID > 0xFF000000 {
+	a.data.mutex.Lock()
+	a.data.connectionID++
+	if a.data.connectionID >= 0xFF000000 {
 		a.data.clientID = nil
 	}
 	if len(a.data.clientID) == 0 {
-		a.data.clientID = make([]byte, 4)
+		a.data.clientID = make([]byte, 8)
 		rand.Read(a.data.clientID)
 		b := make([]byte, 4)
 		rand.Read(b)
 		a.data.connectionID = binary.LittleEndian.Uint32(b) & 0xFFFFFF
 	}
-	a.data.connectionID++
 	copy(encrypt[4:], a.data.clientID)
 	binary.LittleEndian.PutUint32(encrypt[8:], a.data.connectionID)
+	a.data.mutex.Unlock()
 
 	now := time.Now().Unix()
 	binary.LittleEndian.PutUint32(encrypt[0:4], uint32(now))
@@ -208,13 +209,14 @@ func (a *authAES128) packAuthData(data []byte) (outData []byte) {
 	h = a.hmac(a.userKey, outData[0:outLength-4])
 	copy(outData[outLength-4:], h[:4])
 
+	//log.Println("clientID:", a.data.clientID, "connectionID:", a.data.connectionID)
 	return
 }
 
 func (a *authAES128) PreEncrypt(plainData []byte) (outData []byte, err error) {
 	dataLength := len(plainData)
 	offset := 0
-	if !a.hasSentHeader {
+	if dataLength > 0 && !a.hasSentHeader {
 		authLength := dataLength
 		if authLength > 1200 {
 			authLength = 1200
@@ -243,7 +245,6 @@ func (a *authAES128) PreEncrypt(plainData []byte) (outData []byte, err error) {
 func (a *authAES128) PostDecrypt(plainData []byte) ([]byte, int, error) {
 	a.buffer.Reset()
 	plainLength := len(plainData)
-	datalength := plainLength
 	readlenth := 0
 	key := make([]byte, len(a.userKey)+4)
 	copy(key, a.userKey)
@@ -273,9 +274,6 @@ func (a *authAES128) PostDecrypt(plainData []byte) ([]byte, int, error) {
 		plainData = plainData[length:]
 		plainLength -= length
 		readlenth += length
-	}
-	if datalength == readlenth {
-		readlenth = -1
 	}
 	return a.buffer.Bytes(), readlenth, nil
 }

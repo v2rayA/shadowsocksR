@@ -29,8 +29,8 @@ func (p *plain) Encode(data []byte) (encodedData []byte, err error) {
 	return data, nil
 }
 
-func (p *plain) Decode(data []byte) ([]byte, uint64, error) {
-	return data, 0, nil
+func (p *plain) Decode(data []byte) (decodedData []byte, needSendBack bool, err error) {
+	return data, false, nil
 }
 
 func (p *plain) SetData(data interface{}) {

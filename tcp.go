@@ -17,28 +17,24 @@ type SSTCPConn struct {
 	net.Conn
 	sync.Mutex
 	*StreamCipher
-	IObfs          obfs.IObfs
-	IProtocol      protocol.IProtocol
-	readBuf        []byte
-	readDecodeBuf  *bytes.Buffer
-	readIObfsBuf   *bytes.Buffer
-	readEncryptBuf *bytes.Buffer
-	readIndex      uint64
-	readUserBuf    *bytes.Buffer
-	writeBuf       []byte
-	lastReadError  error
+	IObfs     obfs.IObfs
+	IProtocol protocol.IProtocol
+	readBuf   []byte
+	underPostdecryptBuf *bytes.Buffer
+	readIndex           uint64
+	decryptedBuf        *bytes.Buffer
+	writeBuf            []byte
+	lastReadError       error
 }
 
 func NewSSTCPConn(c net.Conn, cipher *StreamCipher) *SSTCPConn {
 	return &SSTCPConn{
-		Conn:           c,
-		StreamCipher:   cipher,
-		readBuf:        leakybuf.GlobalLeakyBuf.Get(),
-		readDecodeBuf:  bytes.NewBuffer(nil),
-		readIObfsBuf:   bytes.NewBuffer(nil),
-		readUserBuf:    bytes.NewBuffer(nil),
-		readEncryptBuf: bytes.NewBuffer(nil),
-		writeBuf:       leakybuf.GlobalLeakyBuf.Get(),
+		Conn:         c,
+		StreamCipher: cipher,
+		readBuf:      leakybuf.GlobalLeakyBuf.Get(),
+		decryptedBuf:        bytes.NewBuffer(nil),
+		underPostdecryptBuf: bytes.NewBuffer(nil),
+		writeBuf:            leakybuf.GlobalLeakyBuf.Get(),
 	}
 }
 
@@ -94,69 +90,33 @@ func (c *SSTCPConn) Read(b []byte) (n int, err error) {
 
 func (c *SSTCPConn) doRead(b []byte) (n int, err error) {
 	//先吐出已经解密后数据
-	if c.readUserBuf.Len() > 0 {
-		return c.readUserBuf.Read(b)
+	if c.decryptedBuf.Len() > 0 {
+		return c.decryptedBuf.Read(b)
 	}
-	//未读取够长度继续读取并解码
-	decodelength := c.readDecodeBuf.Len()
-	if (decodelength == 0 || c.readEncryptBuf.Len() > 0 || (c.readIndex != 0 && c.readIndex > uint64(decodelength))) && c.lastReadError == nil {
-		c.readIndex = 0
-		n, c.lastReadError = c.Conn.Read(c.readBuf)
-		//写入decode 缓存
-		c.readDecodeBuf.Write(c.readBuf[0:n])
+	n, err = c.Conn.Read(c.readBuf)
+	if n == 0 || err != nil {
+		return n, err
 	}
-	//无缓冲数据返回错误
-	if c.lastReadError != nil && (decodelength == 0 || uint64(decodelength) < c.readIndex) {
-		return 0, c.lastReadError
-	}
-	decodelength = c.readDecodeBuf.Len()
-	decodebytes := c.readDecodeBuf.Bytes()
-	c.readDecodeBuf.Reset()
-
-	for {
-
-		decodedData, length, err := c.IObfs.Decode(decodebytes)
-		if length == 0 && err != nil {
-			//log.Println(c.Conn.LocalAddr().String(), c.IObfs.(*obfs.tls12TicketAuth).handshakeStatus, err)
-			return 0, err
-		}
-
-		//do send back
-		if length == 0x3f3f3f3f {
-			c.Write(make([]byte, 0))
-			return 0, nil
-		}
-
-		//数据不够长度
-		if err != nil {
-			if uint64(decodelength) >= length {
-				return 0, fmt.Errorf("data length: %d,decode data length: %d unknown panic", decodelength, length)
-			}
-			c.readIndex = length
-			c.readDecodeBuf.Write(decodebytes)
-			if c.readIObfsBuf.Len() == 0 {
-				return 0, nil
-			}
-			break
-		}
-
-		if length >= 1 {
-			//读出数据 但是有多余的数据 返回已经读取数值
-			c.readIObfsBuf.Write(decodedData)
-			decodebytes = decodebytes[length:]
-			decodelength = len(decodebytes)
-			continue
-		}
-
-		//完全读取数据 --	length == 0
-		c.readIObfsBuf.Write(decodedData)
-
-		break
+	decodedData, needSendBack, err := c.IObfs.Decode(c.readBuf[:n])
+	if err != nil {
+		//log.Println(c.Conn.LocalAddr().String(), c.IObfs.(*obfs.tls12TicketAuth).handshakeStatus, err)
+		return 0, err
 	}
 
-	decodedData := c.readIObfsBuf.Bytes()
-	decodelength = c.readIObfsBuf.Len()
-	c.readIObfsBuf.Reset()
+	//do send back
+	if needSendBack {
+		c.Write(nil)
+		//log.Println("sendBack")
+		return 0, nil
+	}
+	//log.Println(len(decodedData), needSendBack, err, n)
+	if len(decodedData) == 0 {
+		//log.Println(string(c.readBuf[:200]))
+	}
+	decodedDataLen := len(decodedData)
+	if decodedDataLen == 0 {
+		return 0, nil
+	}
 
 	if c.dec == nil {
 		if len(decodedData) < c.info.ivLen {
@@ -170,49 +130,49 @@ func (c *SSTCPConn) doRead(b []byte) (n int, err error) {
 		if len(c.iv) == 0 {
 			c.iv = iv
 		}
-		decodelength -= c.info.ivLen
-		if decodelength <= 0 {
+		decodedDataLen -= c.info.ivLen
+		if decodedDataLen <= 0 {
 			return 0, nil
 		}
 		decodedData = decodedData[c.info.ivLen:]
 	}
 
-	buf := make([]byte, decodelength)
+	buf := make([]byte, decodedDataLen)
 	// decrypt decodedData and save it to buf
 	c.decrypt(buf, decodedData)
-	// append buf to c.readEncryptBuf
-	c.readEncryptBuf.Write(buf)
-	// and read it to encryptbuf immediately
-	encryptbuf := c.readEncryptBuf.Bytes()
-	// then reset it
-	c.readEncryptBuf.Reset()
-	postDecryptedData, length, err := c.IProtocol.PostDecrypt(encryptbuf)
+	// append buf to c.underPostdecryptBuf
+	c.underPostdecryptBuf.Write(buf)
+	// and read it to buf immediately
+	buf = c.underPostdecryptBuf.Bytes()
+	postDecryptedData, length, err := c.IProtocol.PostDecrypt(buf)
 	if err != nil {
 		//log.Println(string(decodebytes))
+		//log.Println("err", err)
 		return 0, err
 	}
 	if length == 0 {
-		// not enough to decrypt
-		c.readEncryptBuf.Write(encryptbuf)
+		// not enough to postDecrypt
 		return 0, nil
-	} else if length > 0 {
-		// append un-decrypt data to buf
-		c.readEncryptBuf.Write(encryptbuf[length:])
 	} else {
-		// not use readEncryptBuf
+		c.underPostdecryptBuf.Next(length)
 	}
 
-	postDecryptedlength := len(postDecryptedData)
+	postDecryptedLength := len(postDecryptedData)
 	blength := len(b)
-	copy(b, postDecryptedData)
-	if blength > postDecryptedlength {
-		return postDecryptedlength, nil
+	//b的长度是否够用
+	if blength > postDecryptedLength {
+		copy(b, postDecryptedData)
+		return postDecryptedLength, nil
 	}
-	c.readUserBuf.Write(postDecryptedData[len(b):])
+	copy(b, postDecryptedData[:blength])
+	c.decryptedBuf.Write(postDecryptedData[blength:])
 	return blength, nil
 }
 
 func (c *SSTCPConn) preWrite(b []byte) (outData []byte, err error) {
+	if b == nil {
+		b = make([]byte, 0)
+	}
 	var iv []byte
 	if iv, err = c.initEncryptor(b); err != nil {
 		return

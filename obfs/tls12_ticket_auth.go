@@ -1,9 +1,11 @@
 package obfs
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -26,19 +28,23 @@ type tls12TicketAuth struct {
 	ssr.ServerInfoForObfs
 	data            *tlsAuthData
 	handshakeStatus int
-	sendBuffer      []byte
+	sendSaver       []byte
+	recvBuffer      *bytes.Buffer
 	fastAuth        bool
 }
 
 // newTLS12TicketAuth create a tlv1.2_ticket_auth object
 func newTLS12TicketAuth() IObfs {
-	return &tls12TicketAuth{}
+	return &tls12TicketAuth{
+		recvBuffer: new(bytes.Buffer),
+	}
 }
 
 // newTLS12TicketFastAuth create a tlv1.2_ticket_fastauth object
 func newTLS12TicketFastAuth() IObfs {
 	return &tls12TicketAuth{
-		fastAuth: true,
+		fastAuth:   true,
+		recvBuffer: new(bytes.Buffer),
 	}
 }
 
@@ -121,7 +127,7 @@ func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 	case 1:
 		if len(data) > 0 {
 			if len(data) < 1024 {
-				t.sendBuffer = packData(t.sendBuffer, data)
+				t.sendSaver = packData(t.sendSaver, data)
 			} else {
 				start := 0
 				var l int
@@ -137,7 +143,7 @@ func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 					l = len(data) - start
 					encodedData = packData(encodedData, data[start:start+l])
 				}
-				t.sendBuffer = append(t.sendBuffer, encodedData...)
+				t.sendSaver = append(t.sendSaver, encodedData...)
 				encodedData = encodedData[:0]
 			}
 			return []byte{}, nil
@@ -148,8 +154,8 @@ func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 		rand.Read(hmacData[11:33])
 		h := t.hmacSHA1(hmacData[:33])
 		copy(hmacData[33:], h)
-		encodedData = append(hmacData, t.sendBuffer...)
-		t.sendBuffer = t.sendBuffer[:0]
+		encodedData = append(hmacData, t.sendSaver...)
+		t.sendSaver = t.sendSaver[:0]
 		t.handshakeStatus = 8
 	case 0:
 		tlsData0 := []byte("\x00\x1c\xc0\x2b\xc0\x2f\xcc\xa9\xcc\xa8\xcc\x14\xcc\x13\xc0\x0a\xc0\x14\xc0\x09\xc0\x13\x00\x9c\x00\x35\x00\x2f\x00\x0a\x01\x00")
@@ -218,7 +224,7 @@ func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 		pdata -= 1
 		l += 1
 
-		t.sendBuffer = packData(t.sendBuffer, data)
+		t.sendSaver = packData(t.sendSaver, data)
 		t.handshakeStatus = 1
 	default:
 		//log.Println(fmt.Errorf("unexpected handshake status: %d", t.handshakeStatus))
@@ -227,39 +233,46 @@ func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 	return
 }
 
-func (t *tls12TicketAuth) Decode(data []byte) (decodedData []byte, lenread uint64, err error) {
+func (t *tls12TicketAuth) Decode(data []byte) (decodedData []byte, needSendBack bool, err error) {
 	if t.handshakeStatus == -1 {
-		return data, uint64(len(data)), nil
+		return data, false, nil
 	}
-	dataLength := len(data)
 
 	if t.handshakeStatus == 8 {
-		if dataLength < 5 {
-			return nil, 5, fmt.Errorf("data need minimum length: 5 ,data only length: %d", dataLength)
+		t.recvBuffer.Write(data)
+		for t.recvBuffer.Len() > 5 {
+			var h [5]byte
+			_, _ = t.recvBuffer.Read(h[:])
+			if !bytes.Equal(h[0:3], []byte{0x17, 0x3, 0x3}) {
+				log.Println("incorrect magic number", h[0:3], ", 0x170303 is expected")
+				return nil, false, ssr.ErrTLS12TicketAuthIncorrectMagicNumber
+			}
+			size := int(binary.BigEndian.Uint16(h[3:5]))
+			if t.recvBuffer.Len() < size {
+				// 不够读，下回再读吧
+				unread := t.recvBuffer.Bytes()
+				t.recvBuffer.Reset()
+				t.recvBuffer.Write(h[:])
+				t.recvBuffer.Write(unread)
+				break
+			}
+			d := make([]byte, size)
+			_, _ = t.recvBuffer.Read(d)
+			decodedData = append(decodedData, d...)
 		}
-		if data[0] != 0x17 {
-			return nil, 0, ssr.ErrTLS12TicketAuthIncorrectMagicNumber
-		}
-		size := int(binary.BigEndian.Uint16(data[3:5]))
-		if size+5 > dataLength {
-			return nil, uint64(size + 5), fmt.Errorf("unexpected data length: %d ,data only length: %d", size+5, dataLength)
-		}
-		if dataLength == size+5 {
-			return data[5:], 0, nil
-		}
-		return data[5 : 5+size], uint64(size + 5), nil
+		return decodedData, false, nil
 	}
 
-	if dataLength < 11+32+1+32 {
-		return nil, 0, ssr.ErrTLS12TicketAuthTooShortData
+	if len(data) < 11+32+1+32 {
+		return nil, false, ssr.ErrTLS12TicketAuthTooShortData
 	}
 
 	hash := t.hmacSHA1(data[11 : 11+22])
 
 	if !hmac.Equal(data[33:33+ssr.ObfsHMACSHA1Len], hash) {
-		return nil, 0, ssr.ErrTLS12TicketAuthHMACError
+		return nil, false, ssr.ErrTLS12TicketAuthHMACError
 	}
-	return nil, 0x3f3f3f3f, nil
+	return nil, true, nil
 }
 
 func (t *tls12TicketAuth) packAuthData() (outData []byte) {
