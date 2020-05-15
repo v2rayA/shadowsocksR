@@ -3,7 +3,7 @@ package client
 import (
 	"errors"
 	"github.com/mzz2017/shadowsocksR/ssr"
-	log2 "log"
+	"log"
 	"net"
 	"net/url"
 	"strconv"
@@ -13,7 +13,6 @@ import (
 	"github.com/mzz2017/shadowsocksR/obfs"
 	"github.com/mzz2017/shadowsocksR/protocol"
 
-	"github.com/nadoo/glider/common/log"
 	"github.com/nadoo/glider/common/socks"
 	"github.com/nadoo/glider/proxy"
 )
@@ -38,7 +37,7 @@ type SSR struct {
 func NewSSR(s string, d proxy.Dialer) (*SSR, error) {
 	u, err := url.Parse(s)
 	if err != nil {
-		log.F("parse err: %s", err)
+		log.Printf("parse err: %s", err)
 		return nil, err
 	}
 
@@ -91,7 +90,7 @@ func (s *SSR) Dial(network, addr string) (net.Conn, error) {
 
 	c, err := s.dialer.Dial("tcp", s.addr)
 	if err != nil {
-		log.F("[ssr] dial to %s error: %s", s.addr, err)
+		log.Printf("[ssr] dial to %s error: %s", s.addr, err)
 		return nil, err
 	}
 
@@ -139,7 +138,7 @@ func (s *SSR) Dial(network, addr string) (net.Conn, error) {
 		s.ProtocolData = ssrconn.IProtocol.GetData()
 	}
 	ssrconn.IProtocol.SetData(s.ProtocolData)
-	log2.Printf("proxy %v <-> %v <-> %v\n", ssrconn.LocalAddr(), ssrconn.RemoteAddr(), target)
+	log.Printf("proxy %v <-> %v <-> %v\n", ssrconn.LocalAddr(), ssrconn.RemoteAddr(), target)
 	if _, err := ssrconn.Write(target); err != nil {
 		ssrconn.Close()
 		return nil, err
