@@ -34,10 +34,6 @@ type SSR struct {
 	clientID        string
 }
 
-func init() {
-	proxy.RegisterDialer("ssr", NewSSRDialer)
-}
-
 // NewSSR returns a shadowsocksr proxy, ssr://method:pass@host:port/query
 func NewSSR(s string, d proxy.Dialer) (*SSR, error) {
 	u, err := url.Parse(s)
