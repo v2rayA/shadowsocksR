@@ -35,6 +35,7 @@ See 'example/main.go' for detailed usage.
 * idea-cfb
 * rc2-cfb
 * seed-cfb
+* none
 
 #### SSR Obfs
 
@@ -51,6 +52,7 @@ See 'example/main.go' for detailed usage.
 - auth_sha1_v4
 - auth_aes128_md5
 - auth_aes128_sha1
+- auth_chain_a
 
 ## Todo (help wanted)
 
