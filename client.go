@@ -2,6 +2,7 @@ package shadowsocksr
 
 import (
 	"errors"
+	cipher2 "github.com/mzz2017/shadowsocksR/streamCipher"
 	"net"
 	"net/url"
 	"strconv"
@@ -17,7 +18,7 @@ func NewSSRClient(u *url.URL) (*SSTCPConn, error) {
 	query := u.Query()
 	encryptMethod := query.Get("encrypt-method")
 	encryptKey := query.Get("encrypt-key")
-	cipher, err := NewStreamCipher(encryptMethod, encryptKey)
+	cipher, err := cipher2.NewStreamCipher(encryptMethod, encryptKey)
 	if err != nil {
 		return nil, err
 	}

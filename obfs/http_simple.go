@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/mzz2017/shadowsocksR/ssr"
 	"math/rand"
 	"strings"
-	"time"
-
-	"github.com/mzz2017/shadowsocksR/ssr"
 )
 
 var (
@@ -290,7 +288,7 @@ func init() {
 
 // newHttpSimple create a http_simple object
 func newHttpSimple() IObfs {
-	rand.Seed(time.Now().UnixNano())
+
 	t := &httpSimplePost{
 		rawTransSent:     false,
 		rawTransReceived: false,
@@ -317,7 +315,7 @@ func (t *httpSimplePost) GetData() interface{} {
 }
 
 func (t *httpSimplePost) boundary() (ret string) {
-	rand.Seed(time.Now().UnixNano())
+
 	set := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 	for i := 0; i < 32; i++ {
 		ret = fmt.Sprintf("%s%c", ret, set[rand.Intn(len(set))])
@@ -337,7 +335,6 @@ func (t *httpSimplePost) Encode(data []byte) (encodedData []byte, err error) {
 		return data, nil
 	}
 
-	rand.Seed(time.Now().UnixNano())
 	dataLength := len(data)
 	var headData []byte
 	if headSize := t.IVLen + t.HeadLen; dataLength-headSize > 64 {

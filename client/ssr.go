@@ -2,6 +2,7 @@ package client
 
 import (
 	"errors"
+	cipher2 "github.com/mzz2017/shadowsocksR/streamCipher"
 	"github.com/mzz2017/shadowsocksR/ssr"
 	"log"
 	"net"
@@ -83,7 +84,7 @@ func (s *SSR) Dial(network, addr string) (net.Conn, error) {
 		return nil, errors.New("[ssr] unable to parse address: " + addr)
 	}
 
-	cipher, err := shadowsocksr.NewStreamCipher(s.EncryptMethod, s.EncryptPassword)
+	cipher, err := cipher2.NewStreamCipher(s.EncryptMethod, s.EncryptPassword)
 	if err != nil {
 		return nil, err
 	}

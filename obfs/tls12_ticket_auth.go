@@ -66,7 +66,7 @@ func (t *tls12TicketAuth) GetData() interface{} {
 	if t.data == nil {
 		t.data = &tlsAuthData{}
 		b := make([]byte, 32)
-		rand.Seed(time.Now().UnixNano())
+
 		rand.Read(b)
 		copy(t.data.localClientID[:], b)
 	}
@@ -78,7 +78,7 @@ func (t *tls12TicketAuth) getHost() string {
 	if len(t.Param) > 0 {
 		hosts := strings.Split(t.Param, ",")
 		if len(hosts) > 0 {
-			rand.Seed(time.Now().UnixNano())
+
 			host = hosts[rand.Intn(len(hosts))]
 			host = strings.TrimSpace(host)
 		}
@@ -99,7 +99,7 @@ func packData(prefixData []byte, suffixData []byte) (outData []byte) {
 
 func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 	encodedData = make([]byte, 0)
-	rand.Seed(time.Now().UnixNano())
+
 	switch t.handshakeStatus {
 	case 8:
 		if len(data) < 1024 {
@@ -282,7 +282,7 @@ func (t *tls12TicketAuth) packAuthData() (outData []byte) {
 	now := time.Now().Unix()
 	binary.BigEndian.PutUint32(outData[0:4], uint32(now))
 
-	rand.Seed(time.Now().UnixNano())
+
 	rand.Read(outData[4 : 4+18])
 
 	hash := t.hmacSHA1(outData[:outSize-ssr.ObfsHMACSHA1Len])

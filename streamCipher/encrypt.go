@@ -1,4 +1,4 @@
-package shadowsocksr
+package streamCipher
 
 import (
 	"crypto/aes"
@@ -8,11 +8,9 @@ import (
 	"crypto/rc4"
 	"encoding/binary"
 	"errors"
-	"math/rand"
-	"time"
-
 	"github.com/mzz2017/shadowsocksR/tools"
 	"github.com/mzz2017/shadowsocksR/tools/leakybuf"
+	"math/rand"
 
 	"github.com/dgryski/go-camellia"
 	"github.com/dgryski/go-idea"
@@ -159,10 +157,26 @@ func newRC2Stream(key, iv []byte, doe DecOrEnc) (cipher.Stream, error) {
 	return newCFBStream(block, err, key, iv, doe)
 }
 
+func newRC4Stream(key, iv []byte, doe DecOrEnc) (cipher.Stream, error) {
+	return rc4.NewCipher(key)
+}
+
 func newSeedStream(key, iv []byte, doe DecOrEnc) (cipher.Stream, error) {
 	// TODO: SEED block cipher implementation is required
 	block, err := rc2.New(key, 16)
 	return newCFBStream(block, err, key, iv, doe)
+}
+
+type NoneStream struct {
+	cipher.Stream
+}
+
+func (*NoneStream) XORKeyStream(dst, src []byte) () {
+	copy(dst, src)
+}
+
+func newNoneStream(key, iv []byte, doe DecOrEnc) (cipher.Stream, error) {
+	return new(NoneStream), nil
 }
 
 type cipherInfo struct {
@@ -195,6 +209,8 @@ var streamCipherMethod = map[string]*cipherInfo{
 	"idea-cfb":         {16, 8, newIdeaStream},
 	"rc2-cfb":          {16, 8, newRC2Stream},
 	"seed-cfb":         {16, 8, newSeedStream},
+	"rc4":              {16, 0, newRC4Stream},
+	"none":             {16, 0, newNoneStream},
 }
 
 func CheckCipherMethod(method string) error {
@@ -235,17 +251,21 @@ func NewStreamCipher(method, password string) (c *StreamCipher, err error) {
 
 	c = &StreamCipher{key: key, info: mi}
 
-	if err != nil {
-		return nil, err
-	}
 	return c, nil
 }
 
+func (c *StreamCipher) EncryptInited() bool {
+	return c.enc != nil
+}
+
+func (c *StreamCipher) DecryptInited() bool {
+	return c.dec != nil
+}
+
 // Initializes the block cipher with CFB mode, returns IV.
-func (c *StreamCipher) initEncrypt() (iv []byte, err error) {
+func (c *StreamCipher) InitEncrypt() (iv []byte, err error) {
 	if c.iv == nil {
 		iv = make([]byte, c.info.ivLen)
-		rand.Seed(time.Now().UnixNano())
 		rand.Read(iv)
 		c.iv = iv
 	} else {
@@ -255,16 +275,16 @@ func (c *StreamCipher) initEncrypt() (iv []byte, err error) {
 	return
 }
 
-func (c *StreamCipher) initDecrypt(iv []byte) (err error) {
+func (c *StreamCipher) InitDecrypt(iv []byte) (err error) {
 	c.dec, err = c.info.newStream(c.key, iv, Decrypt)
 	return
 }
 
-func (c *StreamCipher) encrypt(dst, src []byte) {
+func (c *StreamCipher) Encrypt(dst, src []byte) {
 	c.enc.XORKeyStream(dst, src)
 }
 
-func (c *StreamCipher) decrypt(dst, src []byte) {
+func (c *StreamCipher) Decrypt(dst, src []byte) {
 	c.dec.XORKeyStream(dst, src)
 }
 
@@ -289,10 +309,26 @@ func (c *StreamCipher) Copy() *StreamCipher {
 	return &nc
 }
 
-func (c *StreamCipher) Key() (key []byte, keyLen int) {
-	return c.key, c.info.keyLen
+func (c *StreamCipher) Key() []byte {
+	return c.key
 }
 
-func (c *StreamCipher) IV() ([]byte, int) {
-	return c.iv, c.info.ivLen
+func (c *StreamCipher) IV() []byte {
+	return c.iv
+}
+
+func (c *StreamCipher) SetIV(iv []byte) {
+	c.iv = iv
+}
+
+func (c *StreamCipher) SetKey(key []byte) {
+	c.key = key
+}
+
+func (c *StreamCipher) InfoIVLen() int {
+	return c.info.ivLen
+}
+
+func (c *StreamCipher) InfoKeyLen() int {
+	return c.info.keyLen
 }

@@ -50,7 +50,7 @@ func (a *authSHA1v4) GetData() interface{} {
 func (a *authSHA1v4) packData(data []byte) (outData []byte) {
 	dataLength := len(data)
 	randLength := 1
-	rand.Seed(time.Now().UnixNano())
+
 	if dataLength <= 1300 {
 		if dataLength > 400 {
 			randLength += rand.Intn(128)
@@ -85,7 +85,7 @@ func (a *authSHA1v4) packData(data []byte) (outData []byte) {
 }
 
 func (a *authSHA1v4) packAuthData(data []byte) (outData []byte) {
-	rand.Seed(time.Now().UnixNano())
+
 	dataLength := len(data)
 	randLength := 1
 	if dataLength <= 1300 {
@@ -101,7 +101,7 @@ func (a *authSHA1v4) packAuthData(data []byte) (outData []byte) {
 	a.data.mutex.Lock()
 	defer a.data.mutex.Unlock()
 	a.data.connectionID++
-	if a.data.connectionID >= 0xFF000000 {
+	if a.data.connectionID > 0xFF000000 {
 		a.data.clientID = nil
 	}
 	if len(a.data.clientID) == 0 {
@@ -185,45 +185,44 @@ func (a *authSHA1v4) PreEncrypt(plainData []byte) (outData []byte, err error) {
 
 func (a *authSHA1v4) PostDecrypt(plainData []byte) (outData []byte, n int, err error) {
 	dataLength := len(plainData)
-	b := make([]byte, dataLength)
-	copy(b, plainData)
+	plainLength := dataLength
 	for dataLength > 4 {
-		crc32 := ssr.CalcCRC32(b, 2, 0xFFFFFFFF)
-		if binary.LittleEndian.Uint16(b[2:4]) != uint16(crc32&0xFFFF) {
+		crc32 := ssr.CalcCRC32(plainData, 2, 0xFFFFFFFF)
+		if binary.LittleEndian.Uint16(plainData[2:4]) != uint16(crc32&0xFFFF) {
 			//common.Error("auth_sha1_v4 post decrypt data crc32 error")
 			return nil, 0, ssr.ErrAuthSHA1v4CRC32Error
 		}
-		length := int(binary.BigEndian.Uint16(b[0:2]))
+		length := int(binary.BigEndian.Uint16(plainData[0:2]))
 		if length >= 8192 || length < 8 {
 			//common.Error("auth_sha1_v4 post decrypt data length error")
 			dataLength = 0
-			b = nil
+			plainData = nil
 			return nil, 0, ssr.ErrAuthSHA1v4DataLengthError
 		}
 		if length > dataLength {
 			break
 		}
 
-		if ssr.CheckAdler32(b, length) {
-			pos := int(b[4])
+		if ssr.CheckAdler32(plainData, length) {
+			pos := int(plainData[4])
 			if pos != 0xFF {
 				pos += 4
 			} else {
-				pos = int(binary.BigEndian.Uint16(b[5:5+2])) + 4
+				pos = int(binary.BigEndian.Uint16(plainData[5:5+2])) + 4
 			}
 			outLength := length - pos - 4
 			tmp := make([]byte, len(outData)+outLength)
 			copy(tmp, outData)
-			copy(tmp[len(outData):], b[pos:pos+outLength])
+			copy(tmp[len(outData):], plainData[pos:pos+outLength])
 			outData = tmp
 			dataLength -= length
-			b = b[length:]
+			plainData = plainData[length:]
 		} else {
 			//common.Error("auth_sha1_v4 post decrypt incorrect checksum")
 			dataLength = 0
-			b = nil
+			plainData = nil
 			return nil, 0, ssr.ErrAuthSHA1v4IncorrectChecksum
 		}
 	}
-	return outData, len(plainData) - dataLength, nil
+	return outData, plainLength - dataLength, nil
 }

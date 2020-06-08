@@ -1,13 +1,11 @@
-package shadowsocksr
+package streamCipher
 
 import (
 	"crypto/rc4"
+	"github.com/mzz2017/shadowsocksR/tools"
 	"math/rand"
 	"reflect"
 	"testing"
-	"time"
-
-	"github.com/mzz2017/shadowsocksR/tools"
 )
 
 const text = "Don't tell me the moon is shining; show me the glint of light on broken glass."
@@ -17,8 +15,8 @@ func testCiphter(t *testing.T, c *StreamCipher, msg string) {
 	cipherBuf := make([]byte, n)
 	originTxt := make([]byte, n)
 
-	c.encrypt(cipherBuf, []byte(text))
-	c.decrypt(originTxt, cipherBuf)
+	c.Encrypt(cipherBuf, []byte(text))
+	c.Decrypt(originTxt, cipherBuf)
 
 	if string(originTxt) != text {
 		t.Error(msg, "encrypt then decrytp does not get original text")
@@ -42,25 +40,25 @@ func testBlockCipher(t *testing.T, method string) {
 	var cipher *StreamCipher
 	var err error
 
-	cipher, err = NewStreamCipher(method, "foobar")
+	cipher, err = cipher.NewStreamCipher(method, "foobar")
 	if err != nil {
 		t.Fatal(method, "NewStreamCipher:", err)
 	}
 	cipherCopy := cipher.Copy()
-	iv, err := cipher.initEncrypt()
+	iv, err := cipher.InitEncrypt()
 	if err != nil {
 		t.Error(method, "initEncrypt:", err)
 	}
-	if err = cipher.initDecrypt(iv); err != nil {
+	if err = cipher.InitDecrypt(iv); err != nil {
 		t.Error(method, "initDecrypt:", err)
 	}
 	testCiphter(t, cipher, method)
 
-	iv, err = cipherCopy.initEncrypt()
+	iv, err = cipherCopy.InitEncrypt()
 	if err != nil {
 		t.Error(method, "copy initEncrypt:", err)
 	}
-	if err = cipherCopy.initDecrypt(iv); err != nil {
+	if err = cipherCopy.InitDecrypt(iv); err != nil {
 		t.Error(method, "copy initDecrypt:", err)
 	}
 	testCiphter(t, cipherCopy, method+" copy")
@@ -99,7 +97,7 @@ func init() {
 	for i := 0; i < len(cipherKey); i++ {
 		cipherKey[i] = byte(i)
 	}
-	rand.Seed(time.Now().UnixNano())
+
 	rand.Read(cipherIv)
 }
 
@@ -165,7 +163,7 @@ func benchmarkCipherEncrypt(b *testing.B, method string) {
 	}
 	src := make([]byte, CIPHER_BENCHMARK_BUFFER_LEN)
 	dst := make([]byte, CIPHER_BENCHMARK_BUFFER_LEN)
-	rand.Seed(time.Now().UnixNano())
+
 	rand.Read(src)
 	for i := 0; i < b.N; i++ {
 		enc.XORKeyStream(dst, src)
@@ -222,7 +220,7 @@ func benchmarkCipherDecrypt(b *testing.B, method string) {
 	}
 	src := make([]byte, CIPHER_BENCHMARK_BUFFER_LEN)
 	dst := make([]byte, CIPHER_BENCHMARK_BUFFER_LEN)
-	rand.Seed(time.Now().UnixNano())
+
 	rand.Read(src)
 	enc.XORKeyStream(dst, src)
 	for i := 0; i < b.N; i++ {

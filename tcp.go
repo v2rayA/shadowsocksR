@@ -4,22 +4,29 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/mzz2017/shadowsocksR/streamCipher"
 	"github.com/mzz2017/shadowsocksR/obfs"
 	"github.com/mzz2017/shadowsocksR/protocol"
 	"github.com/mzz2017/shadowsocksR/tools/leakybuf"
 	_ "log"
+	"math/rand"
 	"net"
 	"sync"
+	"time"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 // SSTCPConn the struct that override the net.Conn methods
 type SSTCPConn struct {
 	net.Conn
 	sync.Mutex
-	*StreamCipher
-	IObfs     obfs.IObfs
-	IProtocol protocol.IProtocol
-	readBuf   []byte
+	*streamCipher.StreamCipher
+	IObfs               obfs.IObfs
+	IProtocol           protocol.IProtocol
+	readBuf             []byte
 	underPostdecryptBuf *bytes.Buffer
 	readIndex           uint64
 	decryptedBuf        *bytes.Buffer
@@ -27,13 +34,13 @@ type SSTCPConn struct {
 	lastReadError       error
 }
 
-func NewSSTCPConn(c net.Conn, cipher *StreamCipher) *SSTCPConn {
+func NewSSTCPConn(c net.Conn, cipher *streamCipher.StreamCipher) *SSTCPConn {
 	return &SSTCPConn{
-		Conn:         c,
-		StreamCipher: cipher,
-		readBuf:      leakybuf.GlobalLeakyBuf.Get(),
-		decryptedBuf:        bytes.NewBuffer(nil),
-		underPostdecryptBuf: bytes.NewBuffer(nil),
+		Conn:                c,
+		StreamCipher:        cipher,
+		readBuf:             leakybuf.GlobalLeakyBuf.Get(),
+		decryptedBuf:        new(bytes.Buffer),
+		underPostdecryptBuf: new(bytes.Buffer),
 		writeBuf:            leakybuf.GlobalLeakyBuf.Get(),
 	}
 }
@@ -45,20 +52,20 @@ func (c *SSTCPConn) Close() error {
 }
 
 func (c *SSTCPConn) GetIv() (iv []byte) {
-	iv = make([]byte, len(c.iv))
-	copy(iv, c.iv)
+	iv = make([]byte, len(c.IV()))
+	copy(iv, c.IV())
 	return
 }
 
 func (c *SSTCPConn) GetKey() (key []byte) {
-	key = make([]byte, len(c.key))
-	copy(key, c.key)
+	key = make([]byte, len(c.Key()))
+	copy(key, c.Key())
 	return
 }
 
 func (c *SSTCPConn) initEncryptor(b []byte) (iv []byte, err error) {
-	if c.enc == nil {
-		iv, err = c.initEncrypt()
+	if !c.EncryptInited() {
+		iv, err = c.InitEncrypt()
 		if err != nil {
 			return nil, err
 		}
@@ -66,14 +73,14 @@ func (c *SSTCPConn) initEncryptor(b []byte) (iv []byte, err error) {
 		// should initialize obfs/protocol now, because iv is ready now
 		obfsServerInfo := c.IObfs.GetServerInfo()
 		obfsServerInfo.SetHeadLen(b, 30)
-		obfsServerInfo.IV, obfsServerInfo.IVLen = c.IV()
-		obfsServerInfo.Key, obfsServerInfo.KeyLen = c.Key()
+		obfsServerInfo.IV, obfsServerInfo.IVLen = c.IV(), c.InfoIVLen()
+		obfsServerInfo.Key, obfsServerInfo.KeyLen = c.Key(), c.InfoKeyLen()
 		c.IObfs.SetServerInfo(obfsServerInfo)
 
 		protocolServerInfo := c.IProtocol.GetServerInfo()
 		protocolServerInfo.SetHeadLen(b, 30)
-		protocolServerInfo.IV, protocolServerInfo.IVLen = c.IV()
-		protocolServerInfo.Key, protocolServerInfo.KeyLen = c.Key()
+		protocolServerInfo.IV, protocolServerInfo.IVLen = c.IV(), c.InfoIVLen()
+		protocolServerInfo.Key, protocolServerInfo.KeyLen = c.Key(), c.InfoKeyLen()
 		c.IProtocol.SetServerInfo(protocolServerInfo)
 	}
 	return
@@ -118,34 +125,36 @@ func (c *SSTCPConn) doRead(b []byte) (n int, err error) {
 		return 0, nil
 	}
 
-	if c.dec == nil {
-		if len(decodedData) < c.info.ivLen {
-			return 0, errors.New(fmt.Sprintf("invalid ivLen:%v, actual length:%v", c.info.ivLen, len(decodedData)))
+	if !c.DecryptInited() {
+
+		if len(decodedData) < c.InfoIVLen() {
+			return 0, errors.New(fmt.Sprintf("invalid ivLen:%v, actual length:%v", c.InfoIVLen(), len(decodedData)))
 		}
-		iv := decodedData[0:c.info.ivLen]
-		if err = c.initDecrypt(iv); err != nil {
+		iv := decodedData[0:c.InfoIVLen()]
+		if err = c.InitDecrypt(iv); err != nil {
 			return 0, err
 		}
 
-		if len(c.iv) == 0 {
-			c.iv = iv
+		if len(c.IV()) == 0 {
+			c.SetIV(iv)
 		}
-		decodedDataLen -= c.info.ivLen
+		decodedDataLen -= c.InfoIVLen()
 		if decodedDataLen <= 0 {
 			return 0, nil
 		}
-		decodedData = decodedData[c.info.ivLen:]
+		decodedData = decodedData[c.InfoIVLen():]
 	}
 
 	buf := make([]byte, decodedDataLen)
 	// decrypt decodedData and save it to buf
-	c.decrypt(buf, decodedData)
+	c.Decrypt(buf, decodedData)
 	// append buf to c.underPostdecryptBuf
 	c.underPostdecryptBuf.Write(buf)
 	// and read it to buf immediately
 	buf = c.underPostdecryptBuf.Bytes()
 	postDecryptedData, length, err := c.IProtocol.PostDecrypt(buf)
 	if err != nil {
+		c.underPostdecryptBuf.Reset()
 		//log.Println(string(decodebytes))
 		//log.Println("err", err)
 		return 0, err
@@ -184,18 +193,10 @@ func (c *SSTCPConn) preWrite(b []byte) (outData []byte, err error) {
 		return
 	}
 	preEncryptedDataLen := len(preEncryptedData)
-	//c.encrypt(cipherData[len(iv):], b)
-	encryptedData := make([]byte, preEncryptedDataLen)
 	//! \attention here the expected output buffer length MUST be accurate, it is preEncryptedDataLen now!
-	c.encrypt(encryptedData[0:preEncryptedDataLen], preEncryptedData)
-
-	//log.Println("len(b)=", len(b), ", b:", string(b),
-	//	", pre encrypted data length:", preEncryptedDataLen,
-	//	", pre encrypted data:", string(preEncryptedData),
-	//	", encrypted data length:", preEncryptedDataLen)
 
 	cipherData := c.writeBuf
-	dataSize := len(encryptedData) + len(iv)
+	dataSize := preEncryptedDataLen + len(iv)
 	if dataSize > len(cipherData) {
 		cipherData = make([]byte, dataSize)
 	} else {
@@ -206,8 +207,7 @@ func (c *SSTCPConn) preWrite(b []byte) (outData []byte, err error) {
 		// Put initialization vector in buffer before be encoded
 		copy(cipherData, iv)
 	}
-	copy(cipherData[len(iv):], encryptedData)
-	//log.Println(&c.Conn, c.Conn.LocalAddr().String(), c.IObfs.(*obfs.tls12TicketAuth).handshakeStatus)
+	c.Encrypt(cipherData[len(iv):], preEncryptedData)
 	return c.IObfs.Encode(cipherData)
 }
 

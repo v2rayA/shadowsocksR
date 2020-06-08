@@ -12,13 +12,13 @@ import (
 )
 
 type Params struct {
-	Cipher, Passwd, Address, Port, Obfs, ObfsParam, Protocol, ProtocolParam string
+	Method, Passwd, Address, Port, Obfs, ObfsParam, Protocol, ProtocolParam string
 }
 
 func convertDialerURL(params Params) (s string, err error) {
 	u, err := url.Parse(fmt.Sprintf(
 		"ssr://%v:%v@%v:%v",
-		params.Cipher,
+		params.Method,
 		params.Passwd,
 		params.Address,
 		params.Port,
@@ -42,14 +42,14 @@ func convertDialerURL(params Params) (s string, err error) {
 }
 
 func main() {
-	s,err := convertDialerURL(Params{
-		Cipher:        "",
-		Passwd:        "",
-		Address:       "",
-		Port:          "",
-		Obfs:          "",
+	s, err := convertDialerURL(Params{
+		Method:        "none",
+		Passwd:        "Asdf1234",
+		Address:       "localhost",
+		Port:          "17278",
+		Obfs:          "plain",
 		ObfsParam:     "",
-		Protocol:      "",
+		Protocol:      "auth_chain_a",
 		ProtocolParam: "",
 	})
 	if err != nil {
@@ -62,7 +62,7 @@ func main() {
 	c := http.Client{
 		Transport: &http.Transport{Dial: dia.Dial},
 	}
-	resp, err := c.Get("https://google.com")
+	resp, err := c.Get("https://www.baidu.com")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -15,9 +15,6 @@ import (
 	"github.com/mzz2017/shadowsocksR/tools"
 )
 
-type hmacMethod func(key []byte, data []byte) []byte
-type hashDigestMethod func(data []byte) []byte
-
 func init() {
 	register("auth_aes128_md5", NewAuthAES128MD5)
 }
@@ -30,7 +27,7 @@ func NewAuthAES128MD5() IProtocol {
 		packID:     1,
 		recvInfo: recvInfo{
 			recvID: 1,
-			buffer: bytes.NewBuffer(nil),
+			buffer: new(bytes.Buffer),
 		},
 	}
 	return a
@@ -48,6 +45,7 @@ type authAES128 struct {
 	hasSentHeader bool
 	packID        uint32
 	userKey       []byte
+	uid           [4]byte
 	salt          string
 	hmac          hmacMethod
 	hashDigest    hashDigestMethod
@@ -77,7 +75,7 @@ func (a *authAES128) GetData() interface{} {
 func (a *authAES128) packData(data []byte) (outData []byte) {
 	dataLength := len(data)
 	randLength := 1
-	rand.Seed(time.Now().UnixNano())
+
 	if dataLength <= 1200 {
 		if a.packID > 4 {
 			randLength += rand.Intn(32)
@@ -124,7 +122,7 @@ func (a *authAES128) packData(data []byte) (outData []byte) {
 func (a *authAES128) packAuthData(data []byte) (outData []byte) {
 	dataLength := len(data)
 	var randLength int
-	rand.Seed(time.Now().UnixNano())
+
 	if dataLength > 400 {
 		randLength = rand.Intn(512)
 	} else {
@@ -142,7 +140,7 @@ func (a *authAES128) packAuthData(data []byte) (outData []byte) {
 	rand.Read(outData[dataOffset-randLength:])
 	a.data.mutex.Lock()
 	a.data.connectionID++
-	if a.data.connectionID >= 0xFF000000 {
+	if a.data.connectionID > 0xFF000000 {
 		a.data.clientID = nil
 	}
 	if len(a.data.clientID) == 0 {
@@ -162,39 +160,33 @@ func (a *authAES128) packAuthData(data []byte) (outData []byte) {
 	binary.LittleEndian.PutUint16(encrypt[12:], uint16(outLength&0xFFFF))
 	binary.LittleEndian.PutUint16(encrypt[14:], uint16(randLength&0xFFFF))
 
-	params := strings.Split(a.Param, ":")
-	uid := make([]byte, 4)
-	if len(params) >= 2 {
-		if userID, err := strconv.ParseUint(params[0], 10, 32); err != nil {
-			rand.Read(uid)
-		} else {
-			binary.LittleEndian.PutUint32(uid, uint32(userID))
-			a.userKey = a.hashDigest([]byte(params[1]))
-		}
-	} else {
-		rand.Read(uid)
-	}
-
 	if a.userKey == nil {
-		a.userKey = make([]byte, a.KeyLen)
-		copy(a.userKey, a.Key)
+		params := strings.Split(a.Param, ":")
+		if len(params) >= 2 {
+			if userID, err := strconv.ParseUint(params[0], 10, 32); err == nil {
+				binary.LittleEndian.PutUint32(a.uid[:], uint32(userID))
+				a.userKey = a.hashDigest([]byte(params[1]))
+			}
+		}
+
+		if a.userKey == nil {
+			rand.Read(a.uid[:])
+			a.userKey = make([]byte, a.KeyLen)
+			copy(a.userKey, a.Key)
+		}
 	}
 
-	encryptKey := make([]byte, len(a.userKey))
-	copy(encryptKey, a.userKey)
-
-	aesCipherKey := tools.EVPBytesToKey(base64.StdEncoding.EncodeToString(encryptKey)+a.salt, 16)
+	aesCipherKey := tools.EVPBytesToKey(base64.StdEncoding.EncodeToString(a.userKey)+a.salt, 16)
 	block, err := aes.NewCipher(aesCipherKey)
 	if err != nil {
 		return nil
 	}
-
 	encryptData := make([]byte, 16)
 	iv := make([]byte, aes.BlockSize)
 	cbc := cipher.NewCBCEncrypter(block, iv)
-	cbc.CryptBlocks(encryptData, encrypt[0:16])
+	cbc.CryptBlocks(encryptData, encrypt[:16])
+	copy(encrypt[:4], a.uid[:])
 	copy(encrypt[4:4+16], encryptData)
-	copy(encrypt[0:4], uid)
 
 	h := a.hmac(key, encrypt[0:20])
 	copy(encrypt[20:], h[:4])
