@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"strings"
@@ -141,8 +142,7 @@ func (t *tls12TicketAuth) Encode(data []byte) ([]byte, error) {
 					l = len(data) - start
 					packData(&t.buffer, data[start:start+l])
 				}
-				t.sendSaver.Write(t.buffer.Bytes())
-				t.buffer.Reset()
+				_, _ = io.Copy(&t.sendSaver, &t.buffer)
 			}
 			return []byte{}, nil
 		}
@@ -153,8 +153,7 @@ func (t *tls12TicketAuth) Encode(data []byte) ([]byte, error) {
 		h := t.hmacSHA1(hmacData[:33])
 		copy(hmacData[33:], h)
 		t.buffer.Write(hmacData)
-		t.buffer.Write(t.sendSaver.Bytes())
-		t.sendSaver.Reset()
+		_, _ = io.Copy(&t.buffer, &t.sendSaver)
 		t.handshakeStatus = 8
 		return t.buffer.Bytes(), nil
 	case 0:
