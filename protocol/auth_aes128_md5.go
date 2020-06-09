@@ -138,7 +138,6 @@ func (a *authAES128) packAuthData(data []byte) (outData []byte) {
 	copy(key[a.IVLen:], a.Key)
 
 	rand.Read(outData[dataOffset-randLength:])
-	a.data.mutex.Lock()
 	a.data.connectionID++
 	if a.data.connectionID > 0xFF000000 {
 		a.data.clientID = nil
@@ -152,7 +151,6 @@ func (a *authAES128) packAuthData(data []byte) (outData []byte) {
 	}
 	copy(encrypt[4:], a.data.clientID)
 	binary.LittleEndian.PutUint32(encrypt[8:], a.data.connectionID)
-	a.data.mutex.Unlock()
 
 	now := time.Now().Unix()
 	binary.LittleEndian.PutUint32(encrypt[0:4], uint32(now))
@@ -206,6 +204,7 @@ func (a *authAES128) packAuthData(data []byte) (outData []byte) {
 }
 
 func (a *authAES128) PreEncrypt(plainData []byte) (outData []byte, err error) {
+	a.buffer.Reset()
 	dataLength := len(plainData)
 	offset := 0
 	if dataLength > 0 && !a.hasSentHeader {
@@ -213,25 +212,21 @@ func (a *authAES128) PreEncrypt(plainData []byte) (outData []byte, err error) {
 		if authLength > 1200 {
 			authLength = 1200
 		}
-		packData := a.packAuthData(plainData[:authLength])
 		a.hasSentHeader = true
-		outData = append(outData, packData...)
+		a.buffer.Write(a.packAuthData(plainData[:authLength]))
 		dataLength -= authLength
 		offset += authLength
 	}
 	const blockSize = 4096
 	for dataLength > blockSize {
-		packData := a.packData(plainData[offset : offset+blockSize])
-		outData = append(outData, packData...)
+		a.buffer.Write(a.packData(plainData[offset : offset+blockSize]))
 		dataLength -= blockSize
 		offset += blockSize
 	}
 	if dataLength > 0 {
-		packData := a.packData(plainData[offset:])
-		outData = append(outData, packData...)
+		a.buffer.Write(a.packData(plainData[offset:]))
 	}
-
-	return
+	return a.buffer.Bytes(), nil
 }
 
 func (a *authAES128) PostDecrypt(plainData []byte) ([]byte, int, error) {

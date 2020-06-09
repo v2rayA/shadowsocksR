@@ -8,8 +8,8 @@ import (
 	"crypto/cipher"
 	"encoding/base64"
 	"encoding/binary"
-	cipher2 "github.com/mzz2017/shadowsocksR/streamCipher"
 	"github.com/mzz2017/shadowsocksR/ssr"
+	cipher2 "github.com/mzz2017/shadowsocksR/streamCipher"
 	"github.com/mzz2017/shadowsocksR/tools"
 	"math/rand"
 	"strconv"
@@ -26,7 +26,7 @@ type authChainA struct {
 	randomClient tools.Shift128plusContext
 	randomServer tools.Shift128plusContext
 	recvInfo
-	cipher *cipher2.StreamCipher
+	cipher         *cipher2.StreamCipher
 	hasSentHeader  bool
 	lastClientHash []byte
 	lastServerHash []byte
@@ -226,27 +226,26 @@ func (a *authChainA) packAuthData(data []byte) (outData []byte) {
 	chunkLength, randLength := a.packedDataLen(data)
 	if chunkLength <= 1500 {
 		outData = outData[:authheadLength+chunkLength]
-		a.packData(outData[authheadLength:], data, randLength)
 	} else {
-		var chunk = make([]byte, chunkLength)
-		a.packData(chunk, data, randLength)
-		outData = append(outData, chunk...)
+		newOutData := make([]byte, authheadLength+chunkLength)
+		copy(newOutData, outData[:authheadLength])
+		outData = newOutData
 	}
+	a.packData(outData[authheadLength:], data, randLength)
 	return
 }
 
 func (a *authChainA) PreEncrypt(plainData []byte) (outData []byte, err error) {
+	a.buffer.Reset()
 	dataLength := len(plainData)
 	length := dataLength
 	offset := 0
-	var buf bytes.Buffer
 	if length > 0 && !a.hasSentHeader {
 		headSize := 1200
 		if headSize > dataLength {
 			headSize = dataLength
 		}
-		b := a.packAuthData(plainData[:headSize])
-		buf.Write(b)
+		a.buffer.Write(a.packAuthData(plainData[:headSize]))
 		offset += headSize
 		dataLength -= headSize
 		a.hasSentHeader = true
@@ -256,7 +255,7 @@ func (a *authChainA) PreEncrypt(plainData []byte) (outData []byte, err error) {
 		dataLen, randLength := a.packedDataLen(plainData[offset : offset+unitSize])
 		b := make([]byte, dataLen)
 		a.packData(b, plainData[offset:offset+unitSize], randLength)
-		buf.Write(b)
+		a.buffer.Write(b)
 		dataLength -= unitSize
 		offset += unitSize
 	}
@@ -264,9 +263,9 @@ func (a *authChainA) PreEncrypt(plainData []byte) (outData []byte, err error) {
 		dataLen, randLength := a.packedDataLen(plainData[offset:])
 		b := make([]byte, dataLen)
 		a.packData(b, plainData[offset:], randLength)
-		buf.Write(b)
+		a.buffer.Write(b)
 	}
-	return buf.Bytes(), nil
+	return a.buffer.Bytes(), nil
 }
 
 func (a *authChainA) PostDecrypt(plainData []byte) (outData []byte, n int, err error) {

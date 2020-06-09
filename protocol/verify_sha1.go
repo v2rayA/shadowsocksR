@@ -16,6 +16,7 @@ func init() {
 type verifySHA1 struct {
 	ssr.ServerInfoForObfs
 	hasSentHeader bool
+	buffer        bytes.Buffer
 	chunkId       uint32
 }
 
@@ -71,11 +72,12 @@ func (v *verifySHA1) GetData() interface{} {
 }
 
 func (v *verifySHA1) PreEncrypt(data []byte) (encryptedData []byte, err error) {
+	v.buffer.Reset()
 	dataLength := len(data)
 	offset := 0
 	if !v.hasSentHeader {
 		data[0] |= oneTimeAuthMask
-		encryptedData = v.otaConnectAuth(data[:v.HeadLen])
+		v.buffer.Write(v.otaConnectAuth(data[:v.HeadLen]))
 		v.hasSentHeader = true
 		dataLength -= v.HeadLen
 		offset += v.HeadLen
@@ -83,17 +85,15 @@ func (v *verifySHA1) PreEncrypt(data []byte) (encryptedData []byte, err error) {
 	const blockSize = 4096
 	for dataLength > blockSize {
 		chunkId := v.getAndIncreaseChunkId()
-		b := v.otaReqChunkAuth(chunkId, data[offset:offset+blockSize])
-		encryptedData = append(encryptedData, b...)
+		v.buffer.Write(v.otaReqChunkAuth(chunkId, data[offset:offset+blockSize]))
 		dataLength -= blockSize
 		offset += blockSize
 	}
 	if dataLength > 0 {
 		chunkId := v.getAndIncreaseChunkId()
-		b := v.otaReqChunkAuth(chunkId, data[offset:])
-		encryptedData = append(encryptedData, b...)
+		v.buffer.Write(v.otaReqChunkAuth(chunkId, data[offset:]))
 	}
-	return
+	return v.buffer.Bytes(), nil
 }
 
 func (v *verifySHA1) PostDecrypt(data []byte) ([]byte, int, error) {

@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"bytes"
 	"encoding/binary"
 	"math/rand"
 	"time"
@@ -17,8 +18,7 @@ type authSHA1v4 struct {
 	ssr.ServerInfoForObfs
 	data          *AuthData
 	hasSentHeader bool
-	//recvBuffer       []byte
-	//recvBufferLength int
+	buffer        bytes.Buffer
 }
 
 func NewAuthSHA1v4() IProtocol {
@@ -98,8 +98,6 @@ func (a *authSHA1v4) packAuthData(data []byte) (outData []byte) {
 	dataOffset := randLength + 4 + 2
 	outLength := dataOffset + dataLength + 12 + ssr.ObfsHMACSHA1Len
 	outData = make([]byte, outLength)
-	a.data.mutex.Lock()
-	defer a.data.mutex.Unlock()
 	a.data.connectionID++
 	if a.data.connectionID > 0xFF000000 {
 		a.data.clientID = nil
@@ -155,6 +153,7 @@ func (a *authSHA1v4) packAuthData(data []byte) (outData []byte) {
 }
 
 func (a *authSHA1v4) PreEncrypt(plainData []byte) (outData []byte, err error) {
+	a.buffer.Reset()
 	dataLength := len(plainData)
 	offset := 0
 	if !a.hasSentHeader && dataLength > 0 {
@@ -162,28 +161,26 @@ func (a *authSHA1v4) PreEncrypt(plainData []byte) (outData []byte, err error) {
 		if headSize > dataLength {
 			headSize = dataLength
 		}
-		packData := a.packAuthData(plainData[:headSize])
-		outData = append(outData, packData...)
+		a.buffer.Write(a.packAuthData(plainData[:headSize]))
 		offset += headSize
 		dataLength -= headSize
 		a.hasSentHeader = true
 	}
 	const blockSize = 4096
 	for dataLength > blockSize {
-		packData := a.packData(plainData[offset : offset+blockSize])
-		outData = append(outData, packData...)
+		a.buffer.Write(a.packData(plainData[offset : offset+blockSize]))
 		offset += blockSize
 		dataLength -= blockSize
 	}
 	if dataLength > 0 {
-		packData := a.packData(plainData[offset:])
-		outData = append(outData, packData...)
+		a.buffer.Write(a.packData(plainData[offset:]))
 	}
 
-	return
+	return a.buffer.Bytes(), nil
 }
 
 func (a *authSHA1v4) PostDecrypt(plainData []byte) (outData []byte, n int, err error) {
+	a.buffer.Reset()
 	dataLength := len(plainData)
 	plainLength := dataLength
 	for dataLength > 4 {
@@ -211,10 +208,7 @@ func (a *authSHA1v4) PostDecrypt(plainData []byte) (outData []byte, n int, err e
 				pos = int(binary.BigEndian.Uint16(plainData[5:5+2])) + 4
 			}
 			outLength := length - pos - 4
-			tmp := make([]byte, len(outData)+outLength)
-			copy(tmp, outData)
-			copy(tmp[len(outData):], plainData[pos:pos+outLength])
-			outData = tmp
+			a.buffer.Write(plainData[pos : pos+outLength])
 			dataLength -= length
 			plainData = plainData[length:]
 		} else {
@@ -224,5 +218,5 @@ func (a *authSHA1v4) PostDecrypt(plainData []byte) (outData []byte, n int, err e
 			return nil, 0, ssr.ErrAuthSHA1v4IncorrectChecksum
 		}
 	}
-	return outData, plainLength - dataLength, nil
+	return a.buffer.Bytes(), plainLength - dataLength, nil
 }

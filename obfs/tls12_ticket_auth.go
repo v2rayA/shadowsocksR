@@ -28,23 +28,21 @@ type tls12TicketAuth struct {
 	ssr.ServerInfoForObfs
 	data            *tlsAuthData
 	handshakeStatus int
-	sendSaver       []byte
-	recvBuffer      *bytes.Buffer
+	sendSaver       bytes.Buffer
+	recvBuffer      bytes.Buffer
 	fastAuth        bool
+	buffer          bytes.Buffer
 }
 
 // newTLS12TicketAuth create a tlv1.2_ticket_auth object
 func newTLS12TicketAuth() IObfs {
-	return &tls12TicketAuth{
-		recvBuffer: new(bytes.Buffer),
-	}
+	return &tls12TicketAuth{}
 }
 
 // newTLS12TicketFastAuth create a tlv1.2_ticket_fastauth object
 func newTLS12TicketFastAuth() IObfs {
 	return &tls12TicketAuth{
-		fastAuth:   true,
-		recvBuffer: new(bytes.Buffer),
+		fastAuth: true,
 	}
 }
 
@@ -89,24 +87,24 @@ func (t *tls12TicketAuth) getHost() string {
 	return host
 }
 
-func packData(prefixData []byte, suffixData []byte) (outData []byte) {
+func packData(buffer *bytes.Buffer, suffixData []byte) {
 	d := []byte{0x17, 0x3, 0x3, 0, 0}
 	binary.BigEndian.PutUint16(d[3:5], uint16(len(suffixData)&0xFFFF))
-	outData = append(prefixData, d...)
-	outData = append(outData, suffixData...)
+	buffer.Write(d)
+	buffer.Write(suffixData)
 	return
 }
 
-func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
-	encodedData = make([]byte, 0)
-
+func (t *tls12TicketAuth) Encode(data []byte) ([]byte, error) {
+	t.buffer.Reset()
 	switch t.handshakeStatus {
 	case 8:
 		if len(data) < 1024 {
 			d := []byte{0x17, 0x3, 0x3, 0, 0}
 			binary.BigEndian.PutUint16(d[3:5], uint16(len(data)&0xFFFF))
-			encodedData = append(d, data...)
-			return
+			t.buffer.Write(d)
+			t.buffer.Write(data)
+			return t.buffer.Bytes(), nil
 		} else {
 			start := 0
 			var l int
@@ -115,19 +113,19 @@ func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 				if l > len(data)-start {
 					l = len(data) - start
 				}
-				encodedData = packData(encodedData, data[start:start+l])
+				packData(&t.buffer, data[start:start+l])
 				start += l
 			}
 			if len(data)-start > 0 {
 				l = len(data) - start
-				encodedData = packData(encodedData, data[start:start+l])
+				packData(&t.buffer, data[start:start+l])
 			}
-			return
+			return t.buffer.Bytes(), nil
 		}
 	case 1:
 		if len(data) > 0 {
 			if len(data) < 1024 {
-				t.sendSaver = packData(t.sendSaver, data)
+				packData(&t.sendSaver, data)
 			} else {
 				start := 0
 				var l int
@@ -136,15 +134,15 @@ func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 					if l > len(data)-start {
 						l = len(data) - start
 					}
-					encodedData = packData(encodedData, data[start:start+l])
+					packData(&t.buffer, data[start:start+l])
 					start += l
 				}
 				if len(data)-start > 0 {
 					l = len(data) - start
-					encodedData = packData(encodedData, data[start:start+l])
+					packData(&t.buffer, data[start:start+l])
 				}
-				t.sendSaver = append(t.sendSaver, encodedData...)
-				encodedData = encodedData[:0]
+				t.sendSaver.Write(t.buffer.Bytes())
+				t.buffer.Reset()
 			}
 			return []byte{}, nil
 		}
@@ -154,9 +152,11 @@ func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 		rand.Read(hmacData[11:33])
 		h := t.hmacSHA1(hmacData[:33])
 		copy(hmacData[33:], h)
-		encodedData = append(hmacData, t.sendSaver...)
-		t.sendSaver = t.sendSaver[:0]
+		t.buffer.Write(hmacData)
+		t.buffer.Write(t.sendSaver.Bytes())
+		t.sendSaver.Reset()
 		t.handshakeStatus = 8
+		return t.buffer.Bytes(), nil
 	case 0:
 		tlsData0 := []byte("\x00\x1c\xc0\x2b\xc0\x2f\xcc\xa9\xcc\xa8\xcc\x14\xcc\x13\xc0\x0a\xc0\x14\xc0\x09\xc0\x13\x00\x9c\x00\x35\x00\x2f\x00\x0a\x01\x00")
 		tlsData1 := []byte("\xff\x01\x00\x01\x00")
@@ -182,7 +182,7 @@ func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 		tlsDataLen += len(tlsData3)
 
 		length := 11 + 32 + 1 + 32 + len(tlsData0) + 2 + tlsDataLen
-		encodedData = make([]byte, length)
+		encodedData := make([]byte, length)
 		pdata := length - tlsDataLen
 		l := tlsDataLen
 		copy(encodedData[pdata:], tlsData[:tlsDataLen])
@@ -223,21 +223,20 @@ func (t *tls12TicketAuth) Encode(data []byte) (encodedData []byte, err error) {
 		encodedData[pdata-1] = 0x16 // tls handshake
 		pdata -= 1
 		l += 1
-
-		t.sendSaver = packData(t.sendSaver, data)
+		packData(&t.sendSaver, data)
 		t.handshakeStatus = 1
+		return encodedData, nil
 	default:
 		//log.Println(fmt.Errorf("unexpected handshake status: %d", t.handshakeStatus))
 		return nil, fmt.Errorf("unexpected handshake status: %d", t.handshakeStatus)
 	}
-	return
 }
 
 func (t *tls12TicketAuth) Decode(data []byte) (decodedData []byte, needSendBack bool, err error) {
 	if t.handshakeStatus == -1 {
 		return data, false, nil
 	}
-
+	t.buffer.Reset()
 	if t.handshakeStatus == 8 {
 		t.recvBuffer.Write(data)
 		for t.recvBuffer.Len() > 5 {
@@ -258,9 +257,9 @@ func (t *tls12TicketAuth) Decode(data []byte) (decodedData []byte, needSendBack 
 			}
 			d := make([]byte, size)
 			_, _ = t.recvBuffer.Read(d)
-			decodedData = append(decodedData, d...)
+			t.buffer.Write(d)
 		}
-		return decodedData, false, nil
+		return t.buffer.Bytes(), false, nil
 	}
 
 	if len(data) < 11+32+1+32 {
@@ -281,7 +280,6 @@ func (t *tls12TicketAuth) packAuthData() (outData []byte) {
 
 	now := time.Now().Unix()
 	binary.BigEndian.PutUint32(outData[0:4], uint32(now))
-
 
 	rand.Read(outData[4 : 4+18])
 

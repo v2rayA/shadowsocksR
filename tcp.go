@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/mzz2017/shadowsocksR/streamCipher"
 	"github.com/mzz2017/shadowsocksR/obfs"
 	"github.com/mzz2017/shadowsocksR/protocol"
+	"github.com/mzz2017/shadowsocksR/streamCipher"
 	"github.com/mzz2017/shadowsocksR/tools/leakybuf"
 	_ "log"
 	"math/rand"
 	"net"
-	"sync"
 	"time"
 )
 
@@ -22,7 +21,6 @@ func init() {
 // SSTCPConn the struct that override the net.Conn methods
 type SSTCPConn struct {
 	net.Conn
-	sync.Mutex
 	*streamCipher.StreamCipher
 	IObfs               obfs.IObfs
 	IProtocol           protocol.IProtocol
@@ -212,8 +210,6 @@ func (c *SSTCPConn) preWrite(b []byte) (outData []byte, err error) {
 }
 
 func (c *SSTCPConn) Write(b []byte) (n int, err error) {
-	c.Lock()
-	defer c.Unlock()
 	outData, err := c.preWrite(b)
 	if err != nil {
 		return 0, err

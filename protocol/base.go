@@ -4,7 +4,6 @@ import (
 	"github.com/mzz2017/shadowsocksR/ssr"
 	"github.com/mzz2017/shadowsocksR/tools"
 	"strings"
-	"sync"
 )
 
 type creator func() IProtocol
@@ -29,7 +28,6 @@ type IProtocol interface {
 type AuthData struct {
 	clientID     []byte
 	connectionID uint32
-	mutex        sync.Mutex
 }
 
 func register(name string, c creator) {

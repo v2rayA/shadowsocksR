@@ -40,8 +40,8 @@ func (lb *LeakyBuf) Put(b []byte) {
 }
 
 const (
-	GlobalLeakyBufSize = 32 * 1024 // data.len(2) + hmacsha1(10) + data(4096)
-	maxNBuf            = 8192
+	GlobalLeakyBufSize = 20 * 1024 // the maximum packet size of vmess/shadowsocks is about 16 KiB
+	maxNBuf            = 8192 // most 1280Mb at the same time
 )
 
 var GlobalLeakyBuf = NewLeakyBuf(maxNBuf, GlobalLeakyBufSize)
