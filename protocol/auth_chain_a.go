@@ -8,13 +8,14 @@ import (
 	"crypto/cipher"
 	"encoding/base64"
 	"encoding/binary"
-	"github.com/mzz2017/shadowsocksR/ssr"
-	cipher2 "github.com/mzz2017/shadowsocksR/streamCipher"
-	"github.com/mzz2017/shadowsocksR/tools"
 	"math/rand"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/mzz2017/shadowsocksR/ssr"
+	cipher2 "github.com/mzz2017/shadowsocksR/streamCipher"
+	"github.com/mzz2017/shadowsocksR/tools"
 )
 
 func init() {
@@ -58,6 +59,9 @@ func NewAuthChainA() IProtocol {
 
 func (a *authChainA) SetServerInfo(s *ssr.ServerInfoForObfs) {
 	a.ServerInfoForObfs = *s
+	if a.salt == "auth_chain_b" {
+		a.initDataSize()
+	}
 }
 
 func (a *authChainA) GetServerInfo() (s *ssr.ServerInfoForObfs) {

@@ -21,6 +21,14 @@ type Shift128plusContext struct {
 	v [2]uint64
 }
 
+func (ctx *Shift128plusContext) InitFromBin(bin []byte) {
+	var fillBin [16]byte
+	copy(fillBin[:], bin)
+
+	ctx.v[0] = binary.LittleEndian.Uint64(fillBin[:8])
+	ctx.v[1] = binary.LittleEndian.Uint64(fillBin[8:])
+}
+
 func (ctx *Shift128plusContext) InitFromBinDatalen(bin []byte, datalen int) {
 	var fillBin [16]byte
 	copy(fillBin[:], bin)
