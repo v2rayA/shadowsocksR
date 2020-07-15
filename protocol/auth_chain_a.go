@@ -8,8 +8,6 @@ import (
 	"crypto/cipher"
 	"encoding/base64"
 	"encoding/binary"
-	"encoding/hex"
-	"log"
 	"math/rand"
 	"strconv"
 	"strings"
