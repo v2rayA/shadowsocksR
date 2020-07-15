@@ -275,7 +275,7 @@ var (
 
 // HttpSimple http_simple obfs encapsulate
 type httpSimplePost struct {
-	ssr.ServerInfoForObfs
+	ssr.ServerInfo
 	rawTransSent     bool
 	rawTransReceived bool
 	userAgentIndex   int
@@ -298,12 +298,12 @@ func newHttpSimple() IObfs {
 	return t
 }
 
-func (t *httpSimplePost) SetServerInfo(s *ssr.ServerInfoForObfs) {
-	t.ServerInfoForObfs = *s
+func (t *httpSimplePost) SetServerInfo(s *ssr.ServerInfo) {
+	t.ServerInfo = *s
 }
 
-func (t *httpSimplePost) GetServerInfo() (s *ssr.ServerInfoForObfs) {
-	return &t.ServerInfoForObfs
+func (t *httpSimplePost) GetServerInfo() (s *ssr.ServerInfo) {
+	return &t.ServerInfo
 }
 
 func (t *httpSimplePost) SetData(data interface{}) {
@@ -415,4 +415,8 @@ func (t *httpSimplePost) Decode(data []byte) (decodedData []byte, needSendBack b
 		t.rawTransReceived = true
 	}
 	return decodedData, false, nil
+}
+
+func (t *httpSimplePost) GetOverhead() int {
+	return 0
 }

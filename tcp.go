@@ -68,17 +68,20 @@ func (c *SSTCPConn) initEncryptor(b []byte) (iv []byte, err error) {
 			return nil, err
 		}
 
+		overhead := c.IObfs.GetOverhead() + c.IProtocol.GetOverhead()
 		// should initialize obfs/protocol now, because iv is ready now
 		obfsServerInfo := c.IObfs.GetServerInfo()
 		obfsServerInfo.SetHeadLen(b, 30)
 		obfsServerInfo.IV, obfsServerInfo.IVLen = c.IV(), c.InfoIVLen()
 		obfsServerInfo.Key, obfsServerInfo.KeyLen = c.Key(), c.InfoKeyLen()
+		obfsServerInfo.Overhead = overhead
 		c.IObfs.SetServerInfo(obfsServerInfo)
 
 		protocolServerInfo := c.IProtocol.GetServerInfo()
 		protocolServerInfo.SetHeadLen(b, 30)
 		protocolServerInfo.IV, protocolServerInfo.IVLen = c.IV(), c.InfoIVLen()
 		protocolServerInfo.Key, protocolServerInfo.KeyLen = c.Key(), c.InfoKeyLen()
+		protocolServerInfo.Overhead = overhead
 		c.IProtocol.SetServerInfo(protocolServerInfo)
 	}
 	return
@@ -167,7 +170,7 @@ func (c *SSTCPConn) doRead(b []byte) (n int, err error) {
 	postDecryptedLength := len(postDecryptedData)
 	blength := len(b)
 	//b的长度是否够用
-	if blength > postDecryptedLength {
+	if blength >= postDecryptedLength {
 		copy(b, postDecryptedData)
 		return postDecryptedLength, nil
 	}

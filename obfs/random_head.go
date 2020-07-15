@@ -6,7 +6,7 @@ import (
 )
 
 type randomHead struct {
-	ssr.ServerInfoForObfs
+	ssr.ServerInfo
 	rawTransSent     bool
 	rawTransReceived bool
 	hasSentHeader    bool
@@ -22,12 +22,12 @@ func newRandomHead() IObfs {
 	return p
 }
 
-func (r *randomHead) SetServerInfo(s *ssr.ServerInfoForObfs) {
-	r.ServerInfoForObfs = *s
+func (r *randomHead) SetServerInfo(s *ssr.ServerInfo) {
+	r.ServerInfo = *s
 }
 
-func (r *randomHead) GetServerInfo() (s *ssr.ServerInfoForObfs) {
-	return &r.ServerInfoForObfs
+func (r *randomHead) GetServerInfo() (s *ssr.ServerInfo) {
+	return &r.ServerInfo
 }
 
 func (r *randomHead) SetData(data interface{}) {
@@ -75,4 +75,8 @@ func (r *randomHead) Decode(data []byte) (decodedData []byte, needSendBack bool,
 	}
 	r.rawTransReceived = true
 	return data, true, nil
+}
+
+func (r *randomHead) GetOverhead() int {
+	return 0
 }
