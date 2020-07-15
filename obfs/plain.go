@@ -9,7 +9,7 @@ func init() {
 }
 
 type plain struct {
-	ssr.ServerInfoForObfs
+	ssr.ServerInfo
 }
 
 func newPlainObfs() IObfs {
@@ -17,12 +17,12 @@ func newPlainObfs() IObfs {
 	return p
 }
 
-func (p *plain) SetServerInfo(s *ssr.ServerInfoForObfs) {
-	p.ServerInfoForObfs = *s
+func (p *plain) SetServerInfo(s *ssr.ServerInfo) {
+	p.ServerInfo = *s
 }
 
-func (p *plain) GetServerInfo() (s *ssr.ServerInfoForObfs) {
-	return &p.ServerInfoForObfs
+func (p *plain) GetServerInfo() (s *ssr.ServerInfo) {
+	return &p.ServerInfo
 }
 
 func (p *plain) Encode(data []byte) (encodedData []byte, err error) {
@@ -39,4 +39,8 @@ func (p *plain) SetData(data interface{}) {
 
 func (p *plain) GetData() interface{} {
 	return nil
+}
+
+func (p *plain) GetOverhead() int {
+	return 0
 }

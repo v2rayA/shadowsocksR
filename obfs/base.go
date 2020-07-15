@@ -13,12 +13,13 @@ var (
 )
 
 type IObfs interface {
-	SetServerInfo(s *ssr.ServerInfoForObfs)
-	GetServerInfo() (s *ssr.ServerInfoForObfs)
+	SetServerInfo(s *ssr.ServerInfo)
+	GetServerInfo() (s *ssr.ServerInfo)
 	Encode(data []byte) (encodedData []byte, err error)
 	Decode(data []byte) (decodedData []byte, needSendBack bool, err error)
 	SetData(data interface{})
 	GetData() interface{}
+	GetOverhead() int
 }
 
 func register(name string, c creator) {

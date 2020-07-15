@@ -15,7 +15,7 @@ func init() {
 }
 
 type authSHA1v4 struct {
-	ssr.ServerInfoForObfs
+	ssr.ServerInfo
 	data          *AuthData
 	hasSentHeader bool
 	buffer        bytes.Buffer
@@ -26,12 +26,12 @@ func NewAuthSHA1v4() IProtocol {
 	return a
 }
 
-func (a *authSHA1v4) SetServerInfo(s *ssr.ServerInfoForObfs) {
-	a.ServerInfoForObfs = *s
+func (a *authSHA1v4) SetServerInfo(s *ssr.ServerInfo) {
+	a.ServerInfo = *s
 }
 
-func (a *authSHA1v4) GetServerInfo() (s *ssr.ServerInfoForObfs) {
-	return &a.ServerInfoForObfs
+func (a *authSHA1v4) GetServerInfo() (s *ssr.ServerInfo) {
+	return &a.ServerInfo
 }
 
 func (a *authSHA1v4) SetData(data interface{}) {
@@ -219,4 +219,8 @@ func (a *authSHA1v4) PostDecrypt(plainData []byte) (outData []byte, n int, err e
 		}
 	}
 	return a.buffer.Bytes(), plainLength - dataLength, nil
+}
+
+func (a *authSHA1v4) GetOverhead() int {
+	return 7
 }

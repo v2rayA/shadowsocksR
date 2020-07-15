@@ -18,7 +18,7 @@ var (
 	ErrTLS12TicketAuthIncorrectMagicNumber = errors.New("tls1.2_ticket_auth incorrect magic number")
 )
 
-type ServerInfoForObfs struct {
+type ServerInfo struct {
 	Host      string
 	Port      uint16
 	Param     string
@@ -30,6 +30,7 @@ type ServerInfoForObfs struct {
 	KeyLen    int
 	HeadLen   int
 	TcpMss    int
+	Overhead  int
 }
 
 func GetHeadSize(data []byte, defaultValue int) int {
@@ -52,6 +53,6 @@ func GetHeadSize(data []byte, defaultValue int) int {
 	return defaultValue
 }
 
-func (s *ServerInfoForObfs) SetHeadLen(data []byte, defaultValue int) {
+func (s *ServerInfo) SetHeadLen(data []byte, defaultValue int) {
 	s.HeadLen = GetHeadSize(data, defaultValue)
 }

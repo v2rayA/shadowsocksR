@@ -42,7 +42,7 @@ func NewSSRClient(u *url.URL) (*SSTCPConn, error) {
 	port, _ := strconv.Atoi(rs[1])
 
 	ssconn.IObfs = obfs.NewObfs(query.Get("obfs"))
-	obfsServerInfo := &ssr.ServerInfoForObfs{
+	obfsServerInfo := &ssr.ServerInfo{
 		Host:   rs[0],
 		Port:   uint16(port),
 		TcpMss: 1460,
@@ -50,7 +50,7 @@ func NewSSRClient(u *url.URL) (*SSTCPConn, error) {
 	}
 	ssconn.IObfs.SetServerInfo(obfsServerInfo)
 	ssconn.IProtocol = protocol.NewProtocol(query.Get("protocol"))
-	protocolServerInfo := &ssr.ServerInfoForObfs{
+	protocolServerInfo := &ssr.ServerInfo{
 		Host:   rs[0],
 		Port:   uint16(port),
 		TcpMss: 1460,

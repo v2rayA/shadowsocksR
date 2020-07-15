@@ -39,7 +39,7 @@ type recvInfo struct {
 }
 
 type authAES128 struct {
-	ssr.ServerInfoForObfs
+	ssr.ServerInfo
 	recvInfo
 	data          *AuthData
 	hasSentHeader bool
@@ -51,12 +51,12 @@ type authAES128 struct {
 	hashDigest    hashDigestMethod
 }
 
-func (a *authAES128) SetServerInfo(s *ssr.ServerInfoForObfs) {
-	a.ServerInfoForObfs = *s
+func (a *authAES128) SetServerInfo(s *ssr.ServerInfo) {
+	a.ServerInfo = *s
 }
 
-func (a *authAES128) GetServerInfo() (s *ssr.ServerInfoForObfs) {
-	return &a.ServerInfoForObfs
+func (a *authAES128) GetServerInfo() (s *ssr.ServerInfo) {
+	return &a.ServerInfo
 }
 
 func (a *authAES128) SetData(data interface{}) {
@@ -199,7 +199,6 @@ func (a *authAES128) packAuthData(data []byte) (outData []byte) {
 	h = a.hmac(a.userKey, outData[0:outLength-4])
 	copy(outData[outLength-4:], h[:4])
 
-	//log.Println("clientID:", a.data.clientID, "connectionID:", a.data.connectionID)
 	return
 }
 
@@ -263,4 +262,8 @@ func (a *authAES128) PostDecrypt(plainData []byte) ([]byte, int, error) {
 		readlenth += length
 	}
 	return a.buffer.Bytes(), readlenth, nil
+}
+
+func (a *authAES128) GetOverhead() int {
+	return 9
 }

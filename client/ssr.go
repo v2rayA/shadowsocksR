@@ -109,7 +109,7 @@ func (s *SSR) Dial(network, addr string) (net.Conn, error) {
 		return nil, errors.New("[ssr] unsupported obfs type: " + s.Obfs)
 	}
 
-	obfsServerInfo := &ssr.ServerInfoForObfs{
+	obfsServerInfo := &ssr.ServerInfo{
 		Host:   rs[0],
 		Port:   uint16(port),
 		TcpMss: 1460,
@@ -122,7 +122,7 @@ func (s *SSR) Dial(network, addr string) (net.Conn, error) {
 		return nil, errors.New("[ssr] unsupported protocol type: " + s.Protocol)
 	}
 
-	protocolServerInfo := &ssr.ServerInfoForObfs{
+	protocolServerInfo := &ssr.ServerInfo{
 		Host:   rs[0],
 		Port:   uint16(port),
 		TcpMss: 1460,

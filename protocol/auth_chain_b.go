@@ -25,24 +25,24 @@ func NewAuthChainB() IProtocol {
 	return a
 }
 
-func (a *authChainA) initDataSize() {
+func (a *authChainA) authChainBInitDataSize() {
 	if len(a.Key) == 0 {
 		return
 	}
-	// python version
-	random := &tools.Shift128plusContext{}
 	// libev version
-	// random := a.randomServer
+	random := &a.randomServer
 	random.InitFromBin(a.Key)
-	len := random.Next()%8 + 4
-	for i := 0; i < int(len); i++ {
-		a.dataSizeList = append(a.dataSizeList, (int)(random.Next()%2340%2040%1440))
+	length := random.Next()%8 + 4
+	a.dataSizeList = make([]int, length)
+	for i := 0; i < int(length); i++ {
+		a.dataSizeList[i] = int(random.Next() % 2340 % 2040 % 1440)
 	}
 	sort.Ints(a.dataSizeList)
 
-	len = random.Next()%16 + 8
-	for i := 0; i < int(len); i++ {
-		a.dataSizeList2 = append(a.dataSizeList2, (int)(random.Next()%2340%2040%1440))
+	length = random.Next()%16 + 8
+	a.dataSizeList2 = make([]int, length)
+	for i := 0; i < int(length); i++ {
+		a.dataSizeList2[i] = int(random.Next() % 2340 % 2040 % 1440)
 	}
 	sort.Ints(a.dataSizeList2)
 }
@@ -52,19 +52,14 @@ func authChainBGetRandLen(dataLength int, random *tools.Shift128plusContext, las
 		return 0
 	}
 	random.InitFromBinDatalen(lastHash[:16], dataLength)
-	// python vserion, lower_bound
-	pos := sort.SearchInts(dataSizeList, dataLength+overhead)
 	// libev version, upper_bound
-	// pos := sort.Search(len(dataSizeList), func(i int) bool { return dataSizeList[i] > dataLength+overhead })
+	pos := sort.Search(len(dataSizeList), func(i int) bool { return dataSizeList[i] > dataLength+overhead })
 	finalPos := uint64(pos) + random.Next()%uint64(len(dataSizeList))
 	if finalPos < uint64(len(dataSizeList)) {
 		return dataSizeList[finalPos] - dataLength - overhead
 	}
-
-	// python vserion, lower_bound
-	pos = sort.SearchInts(dataSizeList2, dataLength+overhead)
 	// libev version, upper_bound
-	// pos = sort.Search(len(dataSizeList2), func(i int) bool { return dataSizeList2[i] > dataLength+overhead })
+	pos = sort.Search(len(dataSizeList2), func(i int) bool { return dataSizeList2[i] > dataLength+overhead })
 	finalPos = uint64(pos) + random.Next()%uint64(len(dataSizeList2))
 	if finalPos < uint64(len(dataSizeList2)) {
 		return dataSizeList2[finalPos] - dataLength - overhead

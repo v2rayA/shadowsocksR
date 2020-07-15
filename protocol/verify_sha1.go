@@ -14,7 +14,7 @@ func init() {
 }
 
 type verifySHA1 struct {
-	ssr.ServerInfoForObfs
+	ssr.ServerInfo
 	hasSentHeader bool
 	buffer        bytes.Buffer
 	chunkId       uint32
@@ -55,12 +55,12 @@ func (v *verifySHA1) getAndIncreaseChunkId() (chunkId uint32) {
 	return
 }
 
-func (v *verifySHA1) SetServerInfo(s *ssr.ServerInfoForObfs) {
-	v.ServerInfoForObfs = *s
+func (v *verifySHA1) SetServerInfo(s *ssr.ServerInfo) {
+	v.ServerInfo = *s
 }
 
-func (v *verifySHA1) GetServerInfo() (s *ssr.ServerInfoForObfs) {
-	return &v.ServerInfoForObfs
+func (v *verifySHA1) GetServerInfo() (s *ssr.ServerInfo) {
+	return &v.ServerInfo
 }
 
 func (v *verifySHA1) SetData(data interface{}) {
@@ -98,4 +98,8 @@ func (v *verifySHA1) PreEncrypt(data []byte) (encryptedData []byte, err error) {
 
 func (v *verifySHA1) PostDecrypt(data []byte) ([]byte, int, error) {
 	return data, len(data), nil
+}
+
+func (v *verifySHA1) GetOverhead() int {
+	return 0
 }

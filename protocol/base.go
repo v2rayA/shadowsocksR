@@ -17,12 +17,13 @@ type hashDigestMethod func(data []byte) []byte
 type rndMethod func(dataLength int, random *tools.Shift128plusContext, lastHash []byte, dataSizeList, dataSizeList2 []int, overhead int) int
 
 type IProtocol interface {
-	SetServerInfo(s *ssr.ServerInfoForObfs)
-	GetServerInfo() *ssr.ServerInfoForObfs
+	SetServerInfo(s *ssr.ServerInfo)
+	GetServerInfo() *ssr.ServerInfo
 	PreEncrypt(data []byte) ([]byte, error)
 	PostDecrypt(data []byte) ([]byte, int, error)
 	SetData(data interface{})
 	GetData() interface{}
+	GetOverhead() int
 }
 
 type AuthData struct {

@@ -9,7 +9,7 @@ func init() {
 }
 
 type origin struct {
-	ssr.ServerInfoForObfs
+	ssr.ServerInfo
 }
 
 func NewOrigin() IProtocol {
@@ -17,12 +17,12 @@ func NewOrigin() IProtocol {
 	return a
 }
 
-func (o *origin) SetServerInfo(s *ssr.ServerInfoForObfs) {
-	o.ServerInfoForObfs = *s
+func (o *origin) SetServerInfo(s *ssr.ServerInfo) {
+	o.ServerInfo = *s
 }
 
-func (o *origin) GetServerInfo() (s *ssr.ServerInfoForObfs) {
-	return &o.ServerInfoForObfs
+func (o *origin) GetServerInfo() (s *ssr.ServerInfo) {
+	return &o.ServerInfo
 }
 
 func (o *origin) PreEncrypt(data []byte) (encryptedData []byte, err error) {
@@ -39,4 +39,8 @@ func (o *origin) SetData(data interface{}) {
 
 func (o *origin) GetData() interface{} {
 	return nil
+}
+
+func (o *origin) GetOverhead() int {
+	return 0
 }

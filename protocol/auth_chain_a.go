@@ -8,6 +8,8 @@ import (
 	"crypto/cipher"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/hex"
+	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -23,7 +25,7 @@ func init() {
 }
 
 type authChainA struct {
-	ssr.ServerInfoForObfs
+	ssr.ServerInfo
 	randomClient tools.Shift128plusContext
 	randomServer tools.Shift128plusContext
 	recvInfo
@@ -57,15 +59,15 @@ func NewAuthChainA() IProtocol {
 	return a
 }
 
-func (a *authChainA) SetServerInfo(s *ssr.ServerInfoForObfs) {
-	a.ServerInfoForObfs = *s
+func (a *authChainA) SetServerInfo(s *ssr.ServerInfo) {
+	a.ServerInfo = *s
 	if a.salt == "auth_chain_b" {
-		a.initDataSize()
+		a.authChainBInitDataSize()
 	}
 }
 
-func (a *authChainA) GetServerInfo() (s *ssr.ServerInfoForObfs) {
-	return &a.ServerInfoForObfs
+func (a *authChainA) GetServerInfo() (s *ssr.ServerInfo) {
+	return &a.ServerInfo
 }
 
 func (a *authChainA) SetData(data interface{}) {
@@ -115,7 +117,7 @@ func (a *authChainA) getServerRandLen(dataLength int, overhead int) int {
 
 func (a *authChainA) packedDataLen(data []byte) (chunkLength, randLength int) {
 	dataLength := len(data)
-	randLength = a.getClientRandLen(dataLength, 4)
+	randLength = a.getClientRandLen(dataLength, a.Overhead)
 	chunkLength = randLength + dataLength + 2 + 2
 	return
 }
@@ -181,7 +183,7 @@ func (a *authChainA) packAuthData(data []byte) (outData []byte) {
 	{
 		uid := make([]byte, 4)
 		if a.userKey == nil {
-			params := strings.Split(a.ServerInfoForObfs.Param, ":")
+			params := strings.Split(a.ServerInfo.Param, ":")
 			if len(params) >= 2 {
 				if userID, err := strconv.ParseUint(params[0], 10, 32); err == nil {
 					binary.LittleEndian.PutUint32(a.uid[:], uint32(userID))
@@ -280,7 +282,7 @@ func (a *authChainA) PostDecrypt(plainData []byte) (outData []byte, n int, err e
 	for len(plainData) > 4 {
 		binary.LittleEndian.PutUint32(key[len(a.userKey):], a.recvID)
 		dataLen := (int)((uint(plainData[1]^a.lastServerHash[15]) << 8) + uint(plainData[0]^a.lastServerHash[14]))
-		randLen := a.getServerRandLen(dataLen, 4)
+		randLen := a.getServerRandLen(dataLen, a.Overhead)
 		length := randLen + dataLen
 		if length >= 4096 {
 			return nil, 0, ssr.ErrAuthChainDataLengthError
@@ -313,4 +315,8 @@ func (a *authChainA) PostDecrypt(plainData []byte) (outData []byte, n int, err e
 
 	}
 	return a.buffer.Bytes(), readlenth, nil
+}
+
+func (a *authChainA) GetOverhead() int {
+	return 4
 }

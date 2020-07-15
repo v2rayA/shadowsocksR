@@ -26,7 +26,7 @@ type tlsAuthData struct {
 
 // tls12TicketAuth tls1.2_ticket_auth obfs encapsulate
 type tls12TicketAuth struct {
-	ssr.ServerInfoForObfs
+	ssr.ServerInfo
 	data            *tlsAuthData
 	handshakeStatus int
 	sendSaver       bytes.Buffer
@@ -47,12 +47,12 @@ func newTLS12TicketFastAuth() IObfs {
 	}
 }
 
-func (t *tls12TicketAuth) SetServerInfo(s *ssr.ServerInfoForObfs) {
-	t.ServerInfoForObfs = *s
+func (t *tls12TicketAuth) SetServerInfo(s *ssr.ServerInfo) {
+	t.ServerInfo = *s
 }
 
-func (t *tls12TicketAuth) GetServerInfo() (s *ssr.ServerInfoForObfs) {
-	return &t.ServerInfoForObfs
+func (t *tls12TicketAuth) GetServerInfo() (s *ssr.ServerInfo) {
+	return &t.ServerInfo
 }
 
 func (t *tls12TicketAuth) SetData(data interface{}) {
@@ -308,4 +308,8 @@ func (t *tls12TicketAuth) sni(u string) []byte {
 	length += 2
 	binary.BigEndian.PutUint16(ret[2:], uint16(length&0xFFFF))
 	return ret
+}
+
+func (t *tls12TicketAuth) GetOverhead() int {
+	return 5
 }
