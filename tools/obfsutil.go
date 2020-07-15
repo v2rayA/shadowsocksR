@@ -2,8 +2,6 @@ package tools
 
 import (
 	"encoding/binary"
-	"encoding/hex"
-	"log"
 	"unsafe"
 )
 
@@ -32,7 +30,6 @@ func (ctx *Shift128plusContext) InitFromBin(bin []byte) {
 }
 
 func (ctx *Shift128plusContext) InitFromBinDatalen(bin []byte, datalen int) {
-	log.Println("InitFromBinDatalen:", hex.EncodeToString(bin))
 	var fillBin [16]byte
 	copy(fillBin[:], bin)
 	binary.LittleEndian.PutUint16(fillBin[:2], uint16(datalen))
