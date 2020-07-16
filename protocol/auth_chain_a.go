@@ -167,7 +167,7 @@ func (a *authChainA) packAuthData(data []byte) (outData []byte) {
 	binary.LittleEndian.PutUint32(encrypt[:4], uint32(t))
 	copy(encrypt[4:8], a.data.clientID)
 	binary.LittleEndian.PutUint32(encrypt[8:], a.data.connectionID)
-	binary.LittleEndian.PutUint16(encrypt[12:], 4)
+	binary.LittleEndian.PutUint16(encrypt[12:], uint16(a.Overhead))
 	//binary.LittleEndian.PutUint16(encrypt[14:], 0)
 
 	// first 12 bytes
@@ -254,7 +254,7 @@ func (a *authChainA) PreEncrypt(plainData []byte) (outData []byte, err error) {
 		dataLength -= headSize
 		a.hasSentHeader = true
 	}
-	var unitSize = a.TcpMss - 4
+	var unitSize = a.TcpMss - a.Overhead
 	for dataLength > unitSize {
 		dataLen, randLength := a.packedDataLen(plainData[offset : offset+unitSize])
 		b := make([]byte, dataLen)
