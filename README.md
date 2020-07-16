@@ -66,5 +66,5 @@ See 'example/main.go' for detailed usage.
 * [avege](https://github.com/avege/avege)
 * [shadowsocks-go](https://github.com/shadowsocks/shadowsocks-go)
 * [go-shadowsocks2](https://github.com/shadowsocks/go-shadowsocks2)
-* [ShadowsocksR](https://github.com/shadowsocksr-backup/shadowsocksr)
-* [shadowsocksr-libev](https://github.com/shadowsocksrr/shadowsocksr-libev)
+* [ShadowsocksR](https://github.com/shadowsocksrr/shadowsocksr)
+* [shadowsocksr-libev](https://github.com/shadowsocksr-backup/shadowsocksr-libev)
