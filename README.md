@@ -2,7 +2,7 @@
 
 [shadowsocksR](https://github.com/mzz2017/shadowsocksR) is a shadowsocksR library for Go
 
-* shadowsocksR is based on [avege](https://github.com/avege/avege) and [other shadowsocksR projects](#Reference). 
+* shadowsocksR is based on [avege](https://github.com/avege/avege) and [other shadowsocksR projects](#Credits). 
 * Some problems of [the previous project](https://github.com/sun8911879/shadowsocksR) have been fixed, and new protocols are added.
 
 #### Use
