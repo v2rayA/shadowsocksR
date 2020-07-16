@@ -1,17 +1,17 @@
 # shadowsocksR
 
-**A fork of [sun8911879/shadowsocksR](https://github.com/sun8911879/shadowsocksR).**
+[shadowsocksR](https://github.com/mzz2017/shadowsocksR) is a shadowsocksR library for Go
 
-[shadowsocksR](https://github.com/mzz2017/shadowsocksR) is a shadowsocksR for Go library
-
-* shadowsocksR is based on [avege](https://github.com/avege/avege) and [shadowsocksR for Python](https://github.com/shadowsocksr-backup/shadowsocksr) changes. 
-* Repair avege SSR communication BUG and streamline version. Is a normal use version.
+* shadowsocksR is based on [avege](https://github.com/avege/avege) and [other shadowsocksR projects](#Reference). 
+* Some problems of [the previous project](https://github.com/sun8911879/shadowsocksR) have been fixed, and new protocols are added.
 
 #### Use
 
 See 'example/main.go' for detailed usage.
 
 #### SS Encrypting algorithm
+
+*Not support AEAD method yet.*
 
 * aes-128-cfb
 * aes-192-cfb
@@ -55,16 +55,7 @@ See 'example/main.go' for detailed usage.
 - auth_chain_a
 - auth_chain_b
 
-## Todo (help wanted)
-
-* Optimize performance
-
-### Thanks avege project
+### Credits
 * [avege](https://github.com/avege/avege)
-
-### Reference
-* [avege](https://github.com/avege/avege)
-* [shadowsocks-go](https://github.com/shadowsocks/shadowsocks-go)
-* [go-shadowsocks2](https://github.com/shadowsocks/go-shadowsocks2)
 * [ShadowsocksR](https://github.com/shadowsocksrr/shadowsocksr)
 * [shadowsocksr-libev](https://github.com/shadowsocksr-backup/shadowsocksr-libev)
