@@ -239,7 +239,7 @@ func (a *authAES128) PostDecrypt(plainData []byte) ([]byte, int, error) {
 
 		h := a.hmac(key, plainData[0:2])
 		if h[0] != plainData[2] || h[1] != plainData[3] {
-			return nil, 0, ssr.ErrAuthAES128HMACError
+			return nil, 0, ssr.ErrAuthAES128IncorrectMAC
 		}
 		length := int(binary.LittleEndian.Uint16(plainData[0:2]))
 		if length >= 8192 || length < 8 {
@@ -247,6 +247,10 @@ func (a *authAES128) PostDecrypt(plainData []byte) ([]byte, int, error) {
 		}
 		if length > plainLength {
 			break
+		}
+		h = a.hmac(key, plainData[:plainLength-4])
+		if !bytes.Equal(h[:4], plainData[plainLength-4:]) {
+			return nil, 0, ssr.ErrAuthAES128IncorrectChecksum
 		}
 		a.recvID++
 		pos := int(plainData[4])
