@@ -8,7 +8,7 @@ var (
 	ErrAuthSHA1v4CRC32Error                = errors.New("auth_sha1_v4 post decrypt data crc32 error")
 	ErrAuthSHA1v4DataLengthError           = errors.New("auth_sha1_v4 post decrypt data length error")
 	ErrAuthSHA1v4IncorrectChecksum         = errors.New("auth_sha1_v4 post decrypt incorrect checksum")
-	ErrAuthAES128HMACError                 = errors.New("auth_aes128_* post decrypt hmac error")
+	ErrAuthAES128IncorrectMAC              = errors.New("auth_aes128_* post decrypt incorrect mac")
 	ErrAuthAES128DataLengthError           = errors.New("auth_aes128_* post decrypt length mismatch")
 	ErrAuthChainDataLengthError            = errors.New("auth_chain_* post decrypt length mismatch")
 	ErrAuthChainHMACError                  = errors.New("auth_chain_* post decrypt hmac error")
