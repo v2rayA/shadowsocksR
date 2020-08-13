@@ -95,11 +95,11 @@ func newRC4MD5Stream(key, iv []byte, _ DecOrEnc) (cipher.Stream, error) {
 }
 
 func newChaCha20Stream(key, iv []byte, _ DecOrEnc) (cipher.Stream, error) {
-	return chacha20.New(iv, key)
+	return chacha20.NewCipher(iv, key)
 }
 
 func newChacha20IETFStream(key, iv []byte, _ DecOrEnc) (cipher.Stream, error) {
-	return chacha20.New(iv, key)
+	return chacha20.NewCipher(iv, key)
 }
 
 type salsaStreamCipher struct {
