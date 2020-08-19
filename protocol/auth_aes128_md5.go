@@ -259,7 +259,9 @@ func (a *authAES128) PostDecrypt(plainData []byte) ([]byte, int, error) {
 		} else {
 			pos = int(binary.LittleEndian.Uint16(plainData[5:7])) + 4
 		}
-
+		if pos > length-4 {
+			return nil, 0, ssr.ErrAuthAES128PosOutOfRange
+		}
 		a.buffer.Write(plainData[pos : length-4])
 		plainData = plainData[length:]
 		plainLength -= length

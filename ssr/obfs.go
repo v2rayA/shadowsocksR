@@ -13,6 +13,7 @@ var (
 	ErrAuthChainDataLengthError            = errors.New("auth_chain_* post decrypt length mismatch")
 	ErrAuthChainIncorrectHMAC              = errors.New("auth_chain_* post decrypt incorrect hmac")
 	ErrAuthAES128IncorrectChecksum         = errors.New("auth_aes128_* post decrypt incorrect checksum")
+	ErrAuthAES128PosOutOfRange             = errors.New("auth_aes128_* post decrypt pos out of range")
 	ErrTLS12TicketAuthTooShortData         = errors.New("tls1.2_ticket_auth too short data")
 	ErrTLS12TicketAuthHMACError            = errors.New("tls1.2_ticket_auth hmac verifying failed")
 	ErrTLS12TicketAuthIncorrectMagicNumber = errors.New("tls1.2_ticket_auth incorrect magic number")
