@@ -292,7 +292,7 @@ func (a *authChainA) PostDecrypt(plainData []byte) (outData []byte, n int, err e
 
 		hash := a.hmac(key, plainData[:length-2])
 		if !bytes.Equal(hash[:2], plainData[length-2:length]) {
-			return nil, 0, ssr.ErrAuthChainHMACError
+			return nil, 0, ssr.ErrAuthChainIncorrectHMAC
 		}
 		var dataPos int
 		if dataLen > 0 && randLen > 0 {
