@@ -32,6 +32,7 @@ type authChainA struct {
 	lastClientHash []byte
 	lastServerHash []byte
 	userKey        []byte
+	userKeyLen     int
 	uid            [4]byte
 	salt           string
 	data           *AuthData
@@ -137,11 +138,11 @@ func (a *authChainA) packData(outData []byte, data []byte, randLength int) {
 		}
 	}
 
-	userKeyLen := uint8(len(a.userKey))
-	key := make([]byte, userKeyLen+4)
+	keyLen := a.userKeyLen + 4
+	key := make([]byte, keyLen)
 	copy(key, a.userKey)
 	a.chunkID++
-	binary.LittleEndian.PutUint32(key[userKeyLen:], a.chunkID)
+	binary.LittleEndian.PutUint32(key[a.userKeyLen:], a.chunkID)
 	a.lastClientHash = a.hmac(key, outData[:outLength])
 	copy(outData[outLength:], a.lastClientHash[:2])
 	return
@@ -152,7 +153,8 @@ const authheadLength = 4 + 8 + 4 + 16 + 4
 func (a *authChainA) packAuthData(data []byte) (outData []byte) {
 	outData = make([]byte, authheadLength, authheadLength+1500)
 	a.data.connectionID++
-	if a.data.connectionID > 0xFF000000 {
+	if a.data.connectionID > 0xFF000000 || a.data.clientID == nil {
+		a.data.clientID = make([]byte, 4)
 		rand.Read(a.data.clientID)
 		b := make([]byte, 4)
 		rand.Read(b)
@@ -168,7 +170,7 @@ func (a *authChainA) packAuthData(data []byte) (outData []byte) {
 	copy(encrypt[4:8], a.data.clientID)
 	binary.LittleEndian.PutUint32(encrypt[8:], a.data.connectionID)
 	binary.LittleEndian.PutUint16(encrypt[12:], uint16(a.Overhead))
-	//binary.LittleEndian.PutUint16(encrypt[14:], 0)
+	binary.LittleEndian.PutUint16(encrypt[14:16], 0)
 
 	// first 12 bytes
 	{
@@ -183,13 +185,16 @@ func (a *authChainA) packAuthData(data []byte) (outData []byte) {
 		if a.userKey == nil {
 			params := strings.Split(a.ServerInfo.Param, ":")
 			if len(params) >= 2 {
-				if userID, err := strconv.ParseUint(params[0], 10, 32); err == nil {
+				if userID, err := strconv.Atoi(params[0]); err == nil {
 					binary.LittleEndian.PutUint32(a.uid[:], uint32(userID))
-					a.userKey = a.hashDigest([]byte(params[1]))
+					a.userKeyLen = len(params[1])
+					a.userKey = []byte(params[1])
 				}
 			}
 			if a.userKey == nil {
 				rand.Read(a.uid[:])
+
+				a.userKeyLen = a.KeyLen
 				a.userKey = make([]byte, a.KeyLen)
 				copy(a.userKey, a.Key)
 			}
@@ -228,7 +233,7 @@ func (a *authChainA) packAuthData(data []byte) (outData []byte) {
 
 	// data
 	chunkLength, randLength := a.packedDataLen(data)
-	if chunkLength <= 1500 {
+	if authheadLength+chunkLength <= cap(outData) {
 		outData = outData[:authheadLength+chunkLength]
 	} else {
 		newOutData := make([]byte, authheadLength+chunkLength)
@@ -236,15 +241,14 @@ func (a *authChainA) packAuthData(data []byte) (outData []byte) {
 		outData = newOutData
 	}
 	a.packData(outData[authheadLength:], data, randLength)
-	return
+	return outData
 }
 
 func (a *authChainA) PreEncrypt(plainData []byte) (outData []byte, err error) {
 	a.buffer.Reset()
 	dataLength := len(plainData)
-	length := dataLength
 	offset := 0
-	if length > 0 && !a.hasSentHeader {
+	if dataLength > 0 && !a.hasSentHeader {
 		headSize := 1200
 		if headSize > dataLength {
 			headSize = dataLength

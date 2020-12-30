@@ -2,20 +2,16 @@ package client
 
 import (
 	"errors"
-	cipher2 "github.com/mzz2017/shadowsocksR/streamCipher"
-	"github.com/mzz2017/shadowsocksR/ssr"
-	"log"
-	"net"
-	"net/url"
-	"strconv"
-	"strings"
-
 	shadowsocksr "github.com/mzz2017/shadowsocksR"
 	"github.com/mzz2017/shadowsocksR/obfs"
 	"github.com/mzz2017/shadowsocksR/protocol"
-
-	"github.com/nadoo/glider/common/socks"
-	"github.com/nadoo/glider/proxy"
+	"github.com/mzz2017/shadowsocksR/ssr"
+	cipher "github.com/mzz2017/shadowsocksR/streamCipher"
+	"github.com/mzz2017/shadowsocksR/tools/socks"
+	"golang.org/x/net/proxy"
+	"log"
+	"net"
+	"net/url"
 )
 
 // SSR struct.
@@ -71,9 +67,6 @@ func NewSSRDialer(s string, d proxy.Dialer) (proxy.Dialer, error) {
 
 // Addr returns forwarder's address
 func (s *SSR) Addr() string {
-	if s.addr == "" {
-		return s.dialer.Addr()
-	}
 	return s.addr
 }
 
@@ -84,7 +77,7 @@ func (s *SSR) Dial(network, addr string) (net.Conn, error) {
 		return nil, errors.New("[ssr] unable to parse address: " + addr)
 	}
 
-	cipher, err := cipher2.NewStreamCipher(s.EncryptMethod, s.EncryptPassword)
+	cipher, err := cipher.NewStreamCipher(s.EncryptMethod, s.EncryptPassword)
 	if err != nil {
 		return nil, err
 	}
@@ -101,8 +94,8 @@ func (s *SSR) Dial(network, addr string) (net.Conn, error) {
 	}
 
 	// should initialize obfs/protocol now
-	rs := strings.Split(ssrconn.RemoteAddr().String(), ":")
-	port, _ := strconv.Atoi(rs[1])
+	tcpAddr := ssrconn.RemoteAddr().(*net.TCPAddr)
+	port := tcpAddr.Port
 
 	ssrconn.IObfs = obfs.NewObfs(s.Obfs)
 	if ssrconn.IObfs == nil {
@@ -110,7 +103,7 @@ func (s *SSR) Dial(network, addr string) (net.Conn, error) {
 	}
 
 	obfsServerInfo := &ssr.ServerInfo{
-		Host:   rs[0],
+		Host:   tcpAddr.IP.String(),
 		Port:   uint16(port),
 		TcpMss: 1460,
 		Param:  s.ObfsParam,
@@ -123,7 +116,7 @@ func (s *SSR) Dial(network, addr string) (net.Conn, error) {
 	}
 
 	protocolServerInfo := &ssr.ServerInfo{
-		Host:   rs[0],
+		Host:   tcpAddr.IP.String(),
 		Port:   uint16(port),
 		TcpMss: 1460,
 		Param:  s.ProtocolParam,

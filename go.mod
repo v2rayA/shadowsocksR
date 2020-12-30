@@ -9,4 +9,5 @@ require (
 	github.com/nadoo/glider v0.10.0
 	gitlab.com/yawning/chacha20.git v0.0.0-20190903091407-6d1cb28dc72c
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
+	golang.org/x/net v0.0.0-20200505041828-1ed23360d12c
 )
