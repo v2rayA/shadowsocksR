@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/mzz2017/shadowsocksR/ssr"
+	"github.com/v2rayA/shadowsocksR/ssr"
 	"math/rand"
 	"strings"
 )

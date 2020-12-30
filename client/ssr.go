@@ -2,12 +2,12 @@ package client
 
 import (
 	"errors"
-	shadowsocksr "github.com/mzz2017/shadowsocksR"
-	"github.com/mzz2017/shadowsocksR/obfs"
-	"github.com/mzz2017/shadowsocksR/protocol"
-	"github.com/mzz2017/shadowsocksR/ssr"
-	cipher "github.com/mzz2017/shadowsocksR/streamCipher"
-	"github.com/mzz2017/shadowsocksR/tools/socks"
+	shadowsocksr "github.com/v2rayA/shadowsocksR"
+	"github.com/v2rayA/shadowsocksR/obfs"
+	"github.com/v2rayA/shadowsocksR/protocol"
+	"github.com/v2rayA/shadowsocksR/ssr"
+	cipher "github.com/v2rayA/shadowsocksR/streamCipher"
+	"github.com/v2rayA/shadowsocksR/tools/socks"
 	"golang.org/x/net/proxy"
 	"log"
 	"net"

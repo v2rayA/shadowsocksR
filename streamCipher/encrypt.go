@@ -8,8 +8,8 @@ import (
 	"crypto/rc4"
 	"encoding/binary"
 	"errors"
-	"github.com/mzz2017/shadowsocksR/tools"
-	"github.com/mzz2017/shadowsocksR/tools/leakybuf"
+	"github.com/v2rayA/shadowsocksR/tools"
+	"github.com/v2rayA/shadowsocksR/tools/leakybuf"
 	"math/rand"
 
 	"github.com/dgryski/go-camellia"

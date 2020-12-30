@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mzz2017/shadowsocksR/ssr"
-	"github.com/mzz2017/shadowsocksR/tools"
+	"github.com/v2rayA/shadowsocksR/ssr"
+	"github.com/v2rayA/shadowsocksR/tools"
 )
 
 func init() {

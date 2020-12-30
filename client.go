@@ -2,16 +2,16 @@ package shadowsocksr
 
 import (
 	"errors"
-	cipher2 "github.com/mzz2017/shadowsocksR/streamCipher"
+	cipher2 "github.com/v2rayA/shadowsocksR/streamCipher"
 	"net"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/mzz2017/shadowsocksR/obfs"
-	"github.com/mzz2017/shadowsocksR/protocol"
-	"github.com/mzz2017/shadowsocksR/ssr"
+	"github.com/v2rayA/shadowsocksR/obfs"
+	"github.com/v2rayA/shadowsocksR/protocol"
+	"github.com/v2rayA/shadowsocksR/ssr"
 )
 
 func NewSSRClient(u *url.URL) (*SSTCPConn, error) {

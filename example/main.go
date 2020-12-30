@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/mzz2017/shadowsocksR/client"
+	"github.com/v2rayA/shadowsocksR/client"
 	"github.com/nadoo/glider/proxy"
 	"log"
 	"net/http"

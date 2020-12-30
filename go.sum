@@ -15,7 +15,7 @@ github.com/klauspost/cpuid v1.2.2/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgo
 github.com/klauspost/cpuid v1.2.4/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/reedsolomon v1.9.3/go.mod h1:CwCi+NUr9pqSVktrkN+Ondf06rkhYZ/pcNv7fu+8Un4=
 github.com/klauspost/reedsolomon v1.9.6/go.mod h1:+8WD025Xpby8/kG5h/HDPIFhiiuGEtZOKw+5Y4drAD8=
-github.com/mzz2017/shadowsocksR v0.0.0-20200126130347-721f53a7b15a/go.mod h1:1SJEvxD2Y+N7SK2NpCC4wSatvfGGTUo2rhPdthUFsCU=
+github.com/v2rayA/shadowsocksR v0.0.0-20200126130347-721f53a7b15a/go.mod h1:1SJEvxD2Y+N7SK2NpCC4wSatvfGGTUo2rhPdthUFsCU=
 github.com/nadoo/conflag v0.2.2/go.mod h1:dzFfDUpXdr2uS2oV+udpy5N2vfNOu/bFzjhX1WI52co=
 github.com/nadoo/conflag v0.2.3/go.mod h1:dzFfDUpXdr2uS2oV+udpy5N2vfNOu/bFzjhX1WI52co=
 github.com/nadoo/glider v0.9.2/go.mod h1:S/94KRJFNtgoNlyEm4+33f/DrEsj/uxvismOW4FlIa0=
