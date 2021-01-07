@@ -3,8 +3,8 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/v2rayA/shadowsocksR/client"
 	"github.com/nadoo/glider/proxy"
+	"github.com/v2rayA/shadowsocksR/client"
 	"log"
 	"net/http"
 	"net/url"
@@ -44,13 +44,13 @@ func convertDialerURL(params Params) (s string, err error) {
 func main() {
 	s, err := convertDialerURL(Params{
 		Method:        "none",
-		Passwd:        "Asdf1234",
+		Passwd:        "123456",
 		Address:       "localhost",
-		Port:          "17278",
+		Port:          "8083",
 		Obfs:          "plain",
 		ObfsParam:     "",
 		Protocol:      "auth_chain_a",
-		ProtocolParam: "",
+		ProtocolParam: "100004:123",
 	})
 	if err != nil {
 		log.Fatal(err)
