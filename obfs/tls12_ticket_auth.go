@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -226,7 +225,6 @@ func (t *tls12TicketAuth) Encode(data []byte) ([]byte, error) {
 		t.handshakeStatus = 1
 		return encodedData, nil
 	default:
-		//log.Println(fmt.Errorf("unexpected handshake status: %d", t.handshakeStatus))
 		return nil, fmt.Errorf("unexpected handshake status: %d", t.handshakeStatus)
 	}
 }
@@ -242,12 +240,11 @@ func (t *tls12TicketAuth) Decode(data []byte) (decodedData []byte, needSendBack 
 			var h [5]byte
 			_, _ = t.recvBuffer.Read(h[:])
 			if !bytes.Equal(h[0:3], []byte{0x17, 0x3, 0x3}) {
-				log.Println("incorrect magic number", h[0:3], ", 0x170303 is expected")
-				return nil, false, ssr.ErrTLS12TicketAuthIncorrectMagicNumber
+				return nil, false, fmt.Errorf("%w: incorrect magic number: %v, 0x170303 is expected", ssr.ErrTLS12TicketAuthIncorrectMagicNumber, h[0:3])
 			}
 			size := int(binary.BigEndian.Uint16(h[3:5]))
 			if t.recvBuffer.Len() < size {
-				// 不够读，下回再读吧
+				// read it next time
 				unread := t.recvBuffer.Bytes()
 				t.recvBuffer.Reset()
 				t.recvBuffer.Write(h[:])

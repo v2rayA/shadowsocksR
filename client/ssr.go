@@ -2,20 +2,24 @@ package client
 
 import (
 	"errors"
+	"fmt"
+	"github.com/sirupsen/logrus"
 	shadowsocksr "github.com/v2rayA/shadowsocksR"
 	"github.com/v2rayA/shadowsocksR/obfs"
 	"github.com/v2rayA/shadowsocksR/protocol"
 	"github.com/v2rayA/shadowsocksR/ssr"
 	cipher "github.com/v2rayA/shadowsocksR/streamCipher"
+	"github.com/v2rayA/shadowsocksR/tools"
 	"github.com/v2rayA/shadowsocksR/tools/socks"
 	"golang.org/x/net/proxy"
-	"log"
 	"net"
 	"net/url"
 )
 
 // SSR struct.
 type SSR struct {
+	log *logrus.Logger
+
 	dialer proxy.Dialer
 	addr   string
 
@@ -31,18 +35,21 @@ type SSR struct {
 }
 
 // NewSSR returns a shadowsocksr proxy, ssr://method:pass@host:port/query
-func NewSSR(s string, d proxy.Dialer) (*SSR, error) {
+func NewSSR(s string, d proxy.Dialer, log *logrus.Logger) (*SSR, error) {
 	u, err := url.Parse(s)
 	if err != nil {
-		log.Printf("parse err: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("parse err: %w", err)
 	}
 
 	addr := u.Host
 	method := u.User.Username()
 	pass, _ := u.User.Password()
 
+	if log == nil {
+		log = tools.NewFatalLogger()
+	}
 	p := &SSR{
+		log:             log,
 		dialer:          d,
 		addr:            addr,
 		EncryptMethod:   method,
@@ -58,11 +65,6 @@ func NewSSR(s string, d proxy.Dialer) (*SSR, error) {
 	p.ProtocolData = new(protocol.AuthData)
 
 	return p, nil
-}
-
-// NewSSRDialer returns a ssr proxy dialer.
-func NewSSRDialer(s string, d proxy.Dialer) (proxy.Dialer, error) {
-	return NewSSR(s, d)
 }
 
 // Addr returns forwarder's address
@@ -84,8 +86,7 @@ func (s *SSR) Dial(network, addr string) (net.Conn, error) {
 
 	c, err := s.dialer.Dial("tcp", s.addr)
 	if err != nil {
-		log.Printf("[ssr] dial to %s error: %s", s.addr, err)
-		return nil, err
+		return nil, fmt.Errorf("[ssr] dial to %s error: %w", s.addr, err)
 	}
 
 	ssrconn := shadowsocksr.NewSSTCPConn(c, cipher)
@@ -132,7 +133,7 @@ func (s *SSR) Dial(network, addr string) (net.Conn, error) {
 		s.ProtocolData = ssrconn.IProtocol.GetData()
 	}
 	ssrconn.IProtocol.SetData(s.ProtocolData)
-	log.Printf("proxy %v <-> %v <-> %v\n", ssrconn.LocalAddr(), ssrconn.RemoteAddr(), target)
+	s.log.Printf("proxy %v <-> %v <-> %v\n", ssrconn.LocalAddr(), ssrconn.RemoteAddr(), target)
 	if _, err := ssrconn.Write(target); err != nil {
 		ssrconn.Close()
 		return nil, err

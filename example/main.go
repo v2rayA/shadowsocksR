@@ -3,8 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/nadoo/glider/proxy"
+	"github.com/sirupsen/logrus"
 	"github.com/v2rayA/shadowsocksR/client"
+	"golang.org/x/net/proxy"
 	"log"
 	"net/http"
 	"net/url"
@@ -55,12 +56,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dia, err := client.NewSSRDialer(s, proxy.Default)
+	dialer, err := client.NewSSR(s, proxy.Direct, logrus.New())
 	if err != nil {
 		log.Fatal(err)
 	}
 	c := http.Client{
-		Transport: &http.Transport{Dial: dia.Dial},
+		Transport: &http.Transport{Dial: dialer.Dial},
 	}
 	resp, err := c.Get("https://www.baidu.com")
 	if err != nil {
