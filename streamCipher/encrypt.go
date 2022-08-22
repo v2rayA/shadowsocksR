@@ -46,7 +46,7 @@ func newOFBStream(block cipher.Block, err error, key, iv []byte, doe DecOrEnc) (
 	if err != nil {
 		return nil, err
 	}
-	return cipher.NewCTR(block, iv), nil
+	return cipher.NewOFB(block, iv), nil
 }
 
 func newAESOFBStream(key, iv []byte, doe DecOrEnc) (cipher.Stream, error) {
